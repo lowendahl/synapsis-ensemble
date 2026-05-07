@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ensemble — Mockup v0</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+    const theme = param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+  :root {
+    color-scheme: light;
+    --cp-bg: #f7f4ef;
+    --cp-bg-elevated: #fcfbf8;
+    --cp-surface: #ffffff;
+    --cp-surface-soft: #f5f5f5;
+    --cp-border: #dedede;
+    --cp-border-strong: #919191;
+    --cp-text: #242424;
+    --cp-text-muted: #5c5c5c;
+    --cp-text-soft: #6f6f6f;
+    --cp-accent: #b11f4b;
+    --cp-accent-hover: #9a1a41;
+    --cp-accent-soft: rgba(177, 31, 75, 0.08);
+    --cp-accent-fg: #ffffff;
+    --cp-success: #16a34a;
+    --cp-danger: #dc2626;
+    --cp-warning: #f59e0b;
+    --cp-link: #0078d4;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+    --cp-overlay: rgba(255, 255, 255, 0.8);
+    --cp-panel: rgba(255, 255, 255, 0.86);
+    --cp-panel-strong: rgba(255, 255, 255, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.55);
+    --cp-highlight: rgba(177, 31, 75, 0.12);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --cp-bg: #3d3b3a;
+    --cp-bg-elevated: #343231;
+    --cp-surface: #292929;
+    --cp-surface-soft: #2e2e2e;
+    --cp-border: #474747;
+    --cp-border-strong: #5f5f5f;
+    --cp-text: #dedede;
+    --cp-text-muted: #919191;
+    --cp-text-soft: #b0b0b0;
+    --cp-accent: #fd8ea1;
+    --cp-accent-hover: #fb7b91;
+    --cp-accent-soft: rgba(253, 142, 161, 0.14);
+    --cp-accent-fg: #1a1a1a;
+    --cp-success: #4ade80;
+    --cp-danger: #f87171;
+    --cp-warning: #fbbf24;
+    --cp-link: #4da6ff;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    --cp-overlay: rgba(41, 41, 41, 0.88);
+    --cp-panel: rgba(41, 41, 41, 0.72);
+    --cp-panel-strong: rgba(41, 41, 41, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.04);
+    --cp-highlight: rgba(253, 142, 161, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--cp-bg);
+    color: var(--cp-text);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+  code, pre, .mono { font-family: Consolas, "Courier New", Courier, monospace; }
+
+  /* ───── Top bar ───── */
+  .topbar {
+    height: 44px;
+    background: var(--cp-bg-elevated);
+    border-bottom: 1px solid var(--cp-border);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 14px;
+    position: relative;
+    z-index: 5;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600; letter-spacing: 0.2px;
+  }
+  .brand .mark {
+    width: 22px; height: 22px;
+    border: 1.5px solid var(--cp-text);
+    border-radius: 50%;
+    position: relative;
+    display: inline-block;
+  }
+  .brand .mark::before, .brand .mark::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 2px; height: 10px; background: var(--cp-text);
+    transform-origin: 50% 0;
+  }
+  .brand .mark::before { transform: translate(-50%,-50%) rotate(-30deg); }
+  .brand .mark::after { transform: translate(-50%,-50%) rotate(30deg); height: 8px; background: var(--cp-accent); }
+  .eyebrow {
+    font-size: 10px; letter-spacing: 1.5px; color: var(--cp-text-muted);
+    text-transform: uppercase; padding-top: 1px;
+  }
+  .ws-switch {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 0.625rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    color: var(--cp-text);
+    font: inherit;
+  }
+  .ws-switch:hover { border-color: var(--cp-border-strong); }
+  .layout-tabs { display: flex; gap: 2px; margin-left: auto; }
+  .layout-tabs button {
+    background: transparent; border: 1px solid transparent;
+    color: var(--cp-text-muted); padding: 4px 10px;
+    border-radius: 0.625rem; cursor: pointer; font: inherit;
+  }
+  .layout-tabs button:hover { color: var(--cp-text); }
+  .layout-tabs button.active {
+    background: var(--cp-accent-soft); color: var(--cp-accent);
+    border-color: var(--cp-accent-soft);
+  }
+  .top-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    background: transparent; border: 1px solid var(--cp-border);
+    border-radius: 0.625rem; padding: 4px 10px; cursor: pointer; color: var(--cp-text);
+    font: inherit;
+  }
+  .icon-btn:hover { background: var(--cp-surface-soft); }
+  .icon-btn.danger-on { background: var(--cp-accent-soft); color: var(--cp-accent); border-color: var(--cp-accent); }
+
+  /* ───── Layout ───── */
+  .stage {
+    display: grid;
+    grid-template-columns: 220px 1fr 240px;
+    height: calc(100vh - 44px - 56px); /* minus topbar + bottom bar */
+  }
+
+  /* Left rail — workspace files */
+  .rail {
+    background: var(--cp-bg-elevated);
+    border-right: 1px solid var(--cp-border);
+    overflow-y: auto;
+    padding: 12px 10px;
+  }
+  .rail h4 {
+    text-transform: uppercase; letter-spacing: 1.5px;
+    font-size: 10px; color: var(--cp-text-muted);
+    margin: 12px 4px 6px;
+  }
+  .rail h4:first-child { margin-top: 0; }
+  .rail-item {
+    padding: 6px 8px; border-radius: 8px; cursor: pointer;
+    color: var(--cp-text); font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rail-item:hover { background: var(--cp-surface-soft); }
+  .rail-item.active { background: var(--cp-accent-soft); color: var(--cp-accent); }
+  .rail-item .glyph { width: 16px; opacity: 0.7; }
+  .rail-mission {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--cp-text-muted);
+    line-height: 1.45;
+  }
+
+  /* Main panes area */
+  .panes {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 10px;
+    padding: 10px;
+    overflow: hidden;
+    background: var(--cp-bg);
+  }
+  .panes.solo { grid-template-columns: 1fr 0.7fr; }
+  .panes.pipeline { grid-template-columns: 1fr 1fr; }
+  .panes.atelier { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+  .pane {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 16px;
+    box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .pane.doc { background: var(--cp-bg-elevated); }
+  .pane-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--cp-border);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--cp-panel-strong);
+  }
+  .pane-title {
+    font-weight: 600; font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .voice-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto;
+    box-shadow: 0 0 0 2px var(--cp-surface);
+  }
+  .voice-dot.brand { background: #d97757; }
+  .voice-dot.ux { background: #2f80a4; }
+  .voice-dot.ds { background: #6b8e3d; }
+  .voice-dot.pm { background: #8b5cf6; }
+  .voice-dot.synth { background: var(--cp-accent); }
+
+  .pane-tag {
+    margin-left: auto;
+    font-size: 11px; color: var(--cp-text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ping-badge {
+    background: var(--cp-accent); color: var(--cp-accent-fg);
+    border-radius: 999px; padding: 1px 7px; font-size: 10px; font-weight: 600;
+  }
+  .pane-body { flex: 1; overflow-y: auto; padding: 14px 18px; }
+  .pane-input {
+    border-top: 1px solid var(--cp-border);
+    padding: 8px 10px;
+    background: var(--cp-surface-soft);
+    display: flex; gap: 6px; align-items: center;
+  }
+  .pane-input input {
+    flex: 1; background: var(--cp-surface); border: 1px solid var(--cp-border);
+    border-radius: 0.625rem; padding: 6px 10px; color: var(--cp-text); font: inherit;
+  }
+  .pane-input input:focus { outline: none; border-color: var(--cp-accent); }
+  .send-btn {
+    background: var(--cp-accent); color: var(--cp-accent-fg);
+    border: none; border-radius: 0.625rem; padding: 6px 12px;
+    cursor: pointer; font: inherit; font-weight: 600;
+  }
+  .send-btn:hover { background: var(--cp-accent-hover); }
+
+  /* Doc pane content */
+  .doc-content { font-size: 14px; line-height: 1.7; max-width: 720px; }
+  .doc-content h1 { font-size: 22px; margin: 0 0 10px; }
+  .doc-content h2 { font-size: 17px; margin: 18px 0 8px; }
+  .doc-content p { margin: 8px 0; }
+  .selected-line {
+    background: var(--cp-highlight);
+    border-radius: 4px;
+    padding: 0 4px;
+    cursor: pointer;
+  }
+  .selected-line:hover { outline: 1px solid var(--cp-accent); }
+  .comment-thread {
+    margin: 14px 0 14px 24px;
+    border-left: 3px solid var(--cp-accent);
+    padding: 8px 12px;
+    background: var(--cp-accent-soft);
+    border-radius: 0 10px 10px 0;
+  }
+  .comment {
+    font-size: 13px; padding: 6px 0;
+    border-bottom: 1px dashed var(--cp-border);
+  }
+  .comment:last-child { border-bottom: none; }
+  .comment-meta {
+    font-size: 11px; color: var(--cp-text-muted);
+    display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+  }
+  .comment-meta .author { font-weight: 600; color: var(--cp-text); }
+  .comment-meta .author.agent { color: var(--cp-accent); }
+  .comment-meta .pending {
+    background: var(--cp-warning); color: #1a1a1a;
+    border-radius: 999px; padding: 0 6px; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .mention { color: var(--cp-accent); font-weight: 600; }
+
+  /* Agent pane turns */
+  .turn { margin: 10px 0; }
+  .turn .who {
+    font-size: 11px; color: var(--cp-text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .turn.user { padding: 8px 12px; background: var(--cp-surface-soft); border-radius: 10px; }
+  .turn.agent { padding: 0; }
+  .turn.tool {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px; color: var(--cp-text-muted);
+    background: var(--cp-bg);
+    border-left: 2px solid var(--cp-border-strong);
+    padding: 4px 10px; margin: 8px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .turn.ping {
+    background: var(--cp-accent-soft);
+    border: 1px solid var(--cp-accent);
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin: 10px 0;
+  }
+  .turn.ping .who { color: var(--cp-accent); }
+  .typing { color: var(--cp-text-muted); font-style: italic; }
+  .typing::after { content: "▌"; animation: blink 1s step-end infinite; color: var(--cp-accent); }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Right rail — instruments */
+  .right-rail {
+    background: var(--cp-bg-elevated);
+    border-left: 1px solid var(--cp-border);
+    overflow-y: auto;
+    padding: 12px 10px;
+  }
+  .instrument-card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .instrument-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .instrument-list {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+  }
+  .chip {
+    background: var(--cp-surface-soft);
+    border: 1px solid var(--cp-border);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 11px;
+    color: var(--cp-text-muted);
+  }
+  .chip.allowed { color: var(--cp-text); border-color: var(--cp-border-strong); }
+  .chip.denied { text-decoration: line-through; opacity: 0.5; }
+
+  /* Bottom bar — Council prompt */
+  .council {
+    height: 56px;
+    background: var(--cp-bg-elevated);
+    border-top: 1px solid var(--cp-border);
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .council-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--cp-text-muted);
+  }
+  .council-input {
+    flex: 1;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 0.625rem;
+    padding: 8px 12px;
+    font: inherit; color: var(--cp-text);
+  }
+  .council-input:focus { outline: none; border-color: var(--cp-accent); }
+  .council-targets {
+    display: flex; align-items: center; gap: 4px;
+    border: 1px solid var(--cp-border);
+    border-radius: 999px; padding: 2px 6px;
+    background: var(--cp-surface);
+  }
+  .target-chip {
+    width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+    border: 2px solid var(--cp-bg-elevated);
+    margin-left: -6px;
+    transition: transform 120ms, opacity 120ms;
+    opacity: 0.4;
+  }
+  .target-chip:first-child { margin-left: 0; }
+  .target-chip.active { opacity: 1; transform: scale(1.1); }
+  .target-chip.brand { background: #d97757; }
+  .target-chip.ux { background: #2f80a4; }
+  .target-chip.ds { background: #6b8e3d; }
+  .council-send {
+    background: var(--cp-accent); color: var(--cp-accent-fg);
+    border: none; border-radius: 0.625rem; padding: 8px 16px;
+    cursor: pointer; font: inherit; font-weight: 600;
+  }
+  .council-send:hover { background: var(--cp-accent-hover); }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: var(--cp-overlay); backdrop-filter: blur(2px);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 16px;
+    box-shadow: var(--cp-shadow);
+    padding: 22px;
+    max-width: 520px; width: calc(100vw - 40px);
+  }
+  .modal h3 { margin: 0 0 4px; font-size: 16px; }
+  .modal .sub { color: var(--cp-text-muted); font-size: 12px; margin-bottom: 14px; }
+  .modal .options { display: flex; flex-direction: column; gap: 6px; }
+  .modal .opt {
+    padding: 10px 12px;
+    background: var(--cp-surface-soft);
+    border: 1px solid var(--cp-border);
+    border-radius: 0.625rem;
+    cursor: pointer; font: inherit; text-align: left; color: var(--cp-text);
+  }
+  .modal .opt:hover { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+  .modal .opt.recommended { border-color: var(--cp-accent); }
+  .modal .opt strong { display: block; margin-bottom: 2px; font-size: 13px; }
+  .modal .opt span { color: var(--cp-text-muted); font-size: 12px; }
+
+  /* Help dot */
+  .help-tip {
+    position: absolute; top: 50px; right: 14px;
+    max-width: 260px; padding: 8px 12px;
+    background: var(--cp-panel-strong);
+    border: 1px solid var(--cp-border);
+    border-radius: 10px;
+    box-shadow: var(--cp-shadow);
+    font-size: 12px; color: var(--cp-text-muted);
+    z-index: 10;
+  }
+  .help-tip strong { color: var(--cp-text); }
+  .help-tip button {
+    background: none; border: none; color: var(--cp-link);
+    cursor: pointer; font: inherit; padding: 0; margin-top: 4px;
+  }
+
+  .scroll-x { overflow-x: hidden; }
+
+  /* Pipeline pane */
+  .step {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; margin: 8px 0;
+    background: var(--cp-surface-soft);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+  }
+  .step.gated { border-color: var(--cp-warning); }
+  .step.done { opacity: 0.6; }
+  .step.running { border-color: var(--cp-accent); box-shadow: 0 0 0 3px var(--cp-accent-soft); }
+  .step .num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--cp-accent-soft); color: var(--cp-accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .step .step-skill { font-family: Consolas, monospace; font-size: 12px; color: var(--cp-text-muted); }
+  .step .gate-label {
+    margin-left: auto; font-size: 10px; color: var(--cp-warning);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .empty-pane {
+    color: var(--cp-text-muted); font-size: 13px;
+    padding: 30px; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="mark"></span>
+    <div>
+      <div class="eyebrow">CSU · SYMBIONT</div>
+      <div style="font-size:14px;line-height:1;">Ensemble</div>
+    </div>
+  </div>
+  <button class="ws-switch" onclick="toast('Workspace switcher (mock)')">
+    workspace: <strong style="color:var(--cp-accent)">pricing-redesign</strong> ▾
+  </button>
+  <div class="layout-tabs" id="layoutTabs">
+    <button data-layout="solo">Solo</button>
+    <button data-layout="council" class="active">Council</button>
+    <button data-layout="pipeline">Pipeline</button>
+    <button data-layout="atelier">Atelier</button>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="safeModeBtn" title="Toggle safe-mode">🛡 Safe-mode: off</button>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
+    <button class="icon-btn" onclick="document.getElementById('helpTip').style.display='block'">?</button>
+  </div>
+</div>
+
+<div id="helpTip" class="help-tip" style="display:none">
+  <strong>Try these:</strong><br/>
+  • Click a highlighted phrase in the doc to add a comment with @brand or @ux.<br/>
+  • Type in the Council bar at the bottom and pick which voices answer.<br/>
+  • Switch to <strong>Pipeline</strong> layout to see the /run UI.<br/>
+  • Toggle <strong>Safe-mode</strong> — Council will ask for approval first.
+  <br/><button onclick="document.getElementById('helpTip').style.display='none'">dismiss</button>
+</div>
+
+<div class="stage" id="stage">
+
+  <aside class="rail">
+    <h4>Mission</h4>
+    <div class="rail-mission">
+      Rewrite the pricing page for clarity, trust, and conversion.
+      Three voices weigh in. Brand owns tone, UX owns flow, DS owns A/B impact.
+    </div>
+
+    <h4>Files</h4>
+    <div class="rail-item active"><span class="glyph">📄</span>pricing.md</div>
+    <div class="rail-item"><span class="glyph">📄</span>variants-brief.md</div>
+    <div class="rail-item"><span class="glyph">📊</span>conversion-history.csv</div>
+    <div class="rail-item"><span class="glyph">🖼</span>hero-mock.png</div>
+
+    <h4>Sidecars</h4>
+    <div class="rail-item"><span class="glyph">💬</span>pricing.md.review.yaml <span class="ping-badge" style="margin-left:auto">2</span></div>
+
+    <h4>Memory <span style="color:var(--cp-text-muted);font-weight:normal">[ws:pricing-redesign]</span></h4>
+    <div class="rail-item" style="font-size:11px;color:var(--cp-text-muted)">3 facts loaded</div>
+
+    <h4>Active Voices</h4>
+    <div class="rail-item"><span class="voice-dot brand"></span>brand-voice</div>
+    <div class="rail-item"><span class="voice-dot ux"></span>ux-critic</div>
+    <div class="rail-item"><span class="voice-dot ds"></span>data-scientist</div>
+    <div class="rail-item" style="color:var(--cp-text-muted)">+ add voice</div>
+  </aside>
+
+  <section class="panes" id="panes">
+    <!-- DOC PANE -->
+    <div class="pane doc">
+      <div class="pane-header">
+        <div class="pane-title">📄 pricing.md</div>
+        <div class="pane-tag">tier 1 · 2 comments</div>
+      </div>
+      <div class="pane-body">
+        <div class="doc-content">
+          <h1>Pricing</h1>
+          <p>The right plan for every team — from a first experiment to a global rollout.</p>
+
+          <h2>Starter</h2>
+          <p><span class="selected-line" data-line="7" onclick="addCommentDemo(this)">Built for tomorrow's leaders.</span> Get the core experience with two seats, unlimited drafts, and the public model.</p>
+
+          <div class="comment-thread" id="thread-7">
+            <div class="comment">
+              <div class="comment-meta">
+                <span class="author">patrik</span> · selection L7 · just now
+              </div>
+              <div>
+                <span class="mention">@brand</span> too AI-coded? <span class="mention">@ux</span> is this even a benefit?
+              </div>
+            </div>
+            <div class="comment" id="brand-reply" style="display:none">
+              <div class="comment-meta">
+                <span class="author agent">brand-voice</span>
+                <span class="pending">agent</span>
+                · replying…
+              </div>
+              <div id="brand-reply-text"></div>
+            </div>
+            <div class="comment" id="ux-reply" style="display:none">
+              <div class="comment-meta">
+                <span class="author agent">ux-critic</span>
+                <span class="pending">agent</span>
+                · replying…
+              </div>
+              <div id="ux-reply-text"></div>
+            </div>
+          </div>
+
+          <h2>Team</h2>
+          <p>Up to twenty seats, role-scoped permissions, custom retention, and a managed sandbox for evaluation.</p>
+
+          <h2>Enterprise</h2>
+          <p>SSO, audit logs, dedicated capacity. Talk to us.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- BRAND VOICE PANE -->
+    <div class="pane">
+      <div class="pane-header">
+        <div class="pane-title"><span class="voice-dot brand"></span>Brand Voice</div>
+        <div class="pane-tag" id="brand-pings"></div>
+      </div>
+      <div class="pane-body" id="brand-body">
+        <div class="turn agent">
+          <div class="who">brand-voice</div>
+          <div>Loaded with the pricing-redesign workspace. I'm watching <code>pricing.md</code> for tone issues. Mention me with <span class="mention">@brand</span> in any comment to get a structured critique.</div>
+        </div>
+      </div>
+      <div class="pane-input">
+        <input placeholder="ask brand-voice…" />
+        <button class="send-btn" onclick="toast('1:1 send (mock)')">Send</button>
+      </div>
+    </div>
+
+    <!-- UX CRITIC PANE -->
+    <div class="pane">
+      <div class="pane-header">
+        <div class="pane-title"><span class="voice-dot ux"></span>UX Critic</div>
+        <div class="pane-tag" id="ux-pings"></div>
+      </div>
+      <div class="pane-body" id="ux-body">
+        <div class="turn agent">
+          <div class="who">ux-critic</div>
+          <div>Workspace loaded. I read flow, not copy. I'll flag missing benefits, friction, and call-to-action gaps.</div>
+        </div>
+      </div>
+      <div class="pane-input">
+        <input placeholder="ask ux-critic…" />
+        <button class="send-btn" onclick="toast('1:1 send (mock)')">Send</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="right-rail">
+    <h4 style="text-transform:uppercase;letter-spacing:1.5px;font-size:10px;color:var(--cp-text-muted);margin:0 4px 8px;">Instruments</h4>
+    <div style="font-size:11px;color:var(--cp-text-muted);padding:0 4px 8px;">Skills + tools available to each voice. The orchestra metaphor — voices play instruments.</div>
+
+    <div class="instrument-card">
+      <div class="instrument-name"><span class="voice-dot brand" style="display:inline-block;vertical-align:middle"></span> Brand Voice</div>
+      <div class="instrument-list">
+        <span class="chip allowed">filesystem</span>
+        <span class="chip allowed">/docx</span>
+        <span class="chip allowed">/capture</span>
+        <span class="chip denied">shell</span>
+        <span class="chip denied">m365_*</span>
+      </div>
+    </div>
+
+    <div class="instrument-card">
+      <div class="instrument-name"><span class="voice-dot ux" style="display:inline-block;vertical-align:middle"></span> UX Critic</div>
+      <div class="instrument-list">
+        <span class="chip allowed">filesystem</span>
+        <span class="chip allowed">web-fetch</span>
+        <span class="chip allowed">/excalidraw</span>
+        <span class="chip denied">shell</span>
+      </div>
+    </div>
+
+    <div class="instrument-card">
+      <div class="instrument-name"><span class="voice-dot ds" style="display:inline-block;vertical-align:middle"></span> Data Scientist</div>
+      <div class="instrument-list">
+        <span class="chip allowed">filesystem</span>
+        <span class="chip allowed">shell</span>
+        <span class="chip allowed">sql</span>
+        <span class="chip allowed">/xlsx</span>
+        <span class="chip allowed">/distill</span>
+      </div>
+    </div>
+
+    <h4 style="text-transform:uppercase;letter-spacing:1.5px;font-size:10px;color:var(--cp-text-muted);margin:14px 4px 8px;">Pipelines</h4>
+    <div class="instrument-card" style="cursor:pointer" onclick="setLayout('pipeline')">
+      <div class="instrument-name">/run pricing-review</div>
+      <div style="color:var(--cp-text-muted);font-size:11px;">3 steps · 1 gate · last run 2 days ago</div>
+    </div>
+
+  </aside>
+
+</div>
+
+<div class="council">
+  <span class="council-label">Council</span>
+  <div class="council-targets" title="Pick which voices answer">
+    <span class="target-chip brand active" data-voice="brand" title="brand-voice"></span>
+    <span class="target-chip ux active" data-voice="ux" title="ux-critic"></span>
+    <span class="target-chip ds" data-voice="ds" title="data-scientist"></span>
+  </div>
+  <input id="councilInput" class="council-input" placeholder='Broadcast to selected voices… (try: "review the starter tier for tone and conversion risk")' />
+  <button class="council-send" onclick="sendCouncil()">Send to all ▶</button>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Confirm</h3>
+    <div class="sub" id="modalSub"></div>
+    <div class="options" id="modalOptions"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--cp-text);color:var(--cp-bg);padding:8px 14px;border-radius:0.625rem;font-size:12px;display:none;z-index:200;"></div>
+
+<script>
+  // ───── State ─────
+  const state = {
+    safeMode: false,
+    layout: "council",
+    councilTargets: { brand: true, ux: true, ds: false },
+  };
+
+  // ───── Theme toggle ─────
+  document.getElementById("themeBtn").onclick = () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  };
+
+  // ───── Safe-mode ─────
+  const safeBtn = document.getElementById("safeModeBtn");
+  safeBtn.onclick = () => {
+    state.safeMode = !state.safeMode;
+    safeBtn.textContent = state.safeMode ? "🛡 Safe-mode: ON" : "🛡 Safe-mode: off";
+    safeBtn.classList.toggle("danger-on", state.safeMode);
+    toast(state.safeMode ? "Safe-mode ON — outbound actions will preview" : "Safe-mode off");
+  };
+
+  // ───── Layout switcher ─────
+  function setLayout(name) {
+    state.layout = name;
+    document.querySelectorAll("#layoutTabs button").forEach(b => {
+      b.classList.toggle("active", b.dataset.layout === name);
+    });
+    const panes = document.getElementById("panes");
+    panes.className = "panes " + name;
+    renderLayout(name);
+  }
+  document.querySelectorAll("#layoutTabs button").forEach(btn => {
+    btn.onclick = () => setLayout(btn.dataset.layout);
+  });
+
+  // ───── Council target chips ─────
+  document.querySelectorAll(".target-chip").forEach(chip => {
+    chip.onclick = () => {
+      const v = chip.dataset.voice;
+      state.councilTargets[v] = !state.councilTargets[v];
+      chip.classList.toggle("active", state.councilTargets[v]);
+    };
+  });
+
+  // ───── Toast ─────
+  function toast(msg, ms = 1800) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => (t.style.display = "none"), ms);
+  }
+
+  // ───── Modal (m_ask_user mock) ─────
+  function askUser(title, sub, options) {
+    return new Promise(resolve => {
+      document.getElementById("modalTitle").textContent = title;
+      document.getElementById("modalSub").textContent = sub || "";
+      const list = document.getElementById("modalOptions");
+      list.innerHTML = "";
+      options.forEach(opt => {
+        const b = document.createElement("button");
+        b.className = "opt" + (opt.recommended ? " recommended" : "");
+        b.innerHTML = `<strong>${opt.title}</strong><span>${opt.description || ""}</span>`;
+        b.onclick = () => {
+          document.getElementById("modalBg").classList.remove("show");
+          resolve(opt.title);
+        };
+        list.appendChild(b);
+      });
+      document.getElementById("modalBg").classList.add("show");
+    });
+  }
+
+  // ───── Demo: comment → agent reply ─────
+  const brandReplyText = "Three flags: <em>'tomorrow's'</em> is hype; <em>'leaders'</em> is unspecified flattery; the line carries no actual benefit. Try: <strong>\"Built for the teams who run pricing today. Two seats, unlimited drafts.\"</strong>";
+  const uxReplyText = "Not a benefit — a stance. Move it to the manifesto. Replace the H2 lead-in with the real value prop (\"Two seats, unlimited drafts\") so users can scan the tier in 2 seconds.";
+
+  let demoFired = false;
+  function addCommentDemo(el) {
+    if (demoFired) { toast("Already replied (mock)"); return; }
+    demoFired = true;
+    document.getElementById("thread-7").style.display = "block";
+
+    // Mark pings
+    document.getElementById("brand-pings").innerHTML = '<span class="ping-badge">1</span> ping';
+    document.getElementById("ux-pings").innerHTML = '<span class="ping-badge">1</span> ping';
+
+    // Brand pane: ping → typing → reply
+    setTimeout(() => streamReply("brand-body", "brand-voice", brandReplyText, "brand-reply", "brand-reply-text", "brand-pings"), 400);
+    setTimeout(() => streamReply("ux-body", "ux-critic", uxReplyText, "ux-reply", "ux-reply-text", "ux-pings"), 1100);
+  }
+
+  function streamReply(paneBodyId, voiceName, html, commentId, commentTextId, pingTagId) {
+    const body = document.getElementById(paneBodyId);
+    // Add the ping turn
+    body.insertAdjacentHTML("beforeend", `
+      <div class="turn ping">
+        <div class="who">@${voiceName === "brand-voice" ? "brand" : "ux"} pinged from pricing.md L7</div>
+        <div style="font-size:12px;color:var(--cp-text-muted);">comment by patrik · selection: "Built for tomorrow's leaders."</div>
+      </div>
+      <div class="turn agent" id="${voiceName}-typing">
+        <div class="who">${voiceName}</div>
+        <div class="typing">thinking</div>
+      </div>
+    `);
+    body.scrollTop = body.scrollHeight;
+
+    // Show comment thread placeholder
+    document.getElementById(commentId).style.display = "block";
+    const target = document.getElementById(commentTextId);
+    target.innerHTML = '<span class="typing">…</span>';
+
+    // Stream after a beat
+    setTimeout(() => {
+      const typingEl = document.getElementById(`${voiceName}-typing`);
+      typingEl.innerHTML = `<div class="who">${voiceName}</div><div>${html}</div>`;
+      target.innerHTML = html;
+      // Update ping tag to "answered"
+      document.getElementById(pingTagId).innerHTML = '<span style="color:var(--cp-success);">✓ answered</span>';
+      body.scrollTop = body.scrollHeight;
+    }, 1400);
+  }
+
+  // ───── Council send (with safe-mode gate) ─────
+  async function sendCouncil() {
+    const input = document.getElementById("councilInput");
+    const text = input.value.trim() || 'Review the starter tier for tone and conversion risk.';
+    const targets = Object.entries(state.councilTargets).filter(([,on]) => on).map(([k]) => k);
+    if (targets.length === 0) { toast("Pick at least one voice"); return; }
+
+    if (state.safeMode) {
+      const choice = await askUser(
+        "Broadcast to " + targets.length + " voices?",
+        `"${text.slice(0, 80)}${text.length > 80 ? "…" : ""}"`,
+        [
+          { title: "Send to all", description: "Broadcast as-is", recommended: true },
+          { title: "Edit first", description: "Cancel and tweak the prompt" },
+          { title: "Cancel", description: "Don't send" },
+        ]
+      );
+      if (choice !== "Send to all") { toast("Council cancelled"); return; }
+    }
+
+    input.value = "";
+    toast(`Broadcast to ${targets.length} voices`);
+
+    const replies = {
+      brand: "Tone read: corporate-vague. \"The right plan for every team\" is anti-brand — it commits to nothing. Re-cast as a promise: \"One workspace. Two seats to start. Add a team when you outgrow it.\"",
+      ux: "Conversion risk: tier names without prices below them = high bounce. Move pricing chips inline with the H2. The Enterprise CTA is buried.",
+      ds: "Last 90 days: starter→team conversion 8.4%, well below benchmark 14%. Hypothesis: starter copy doesn't anchor against team. A/B variant: lead with team, fall back to starter."
+    };
+
+    targets.forEach((v, i) => {
+      const paneBody = document.getElementById(v + "-body");
+      if (!paneBody) return;
+      setTimeout(() => {
+        paneBody.insertAdjacentHTML("beforeend", `
+          <div class="turn user">
+            <div class="who">council prompt</div>
+            <div>${text}</div>
+          </div>
+          <div class="turn agent">
+            <div class="who">${v === "brand" ? "brand-voice" : v === "ux" ? "ux-critic" : "data-scientist"}</div>
+            <div class="typing">thinking</div>
+          </div>
+        `);
+        paneBody.scrollTop = paneBody.scrollHeight;
+        setTimeout(() => {
+          // Replace last typing
+          const turns = paneBody.querySelectorAll(".turn.agent");
+          const last = turns[turns.length - 1];
+          last.innerHTML = `<div class="who">${v === "brand" ? "brand-voice" : v === "ux" ? "ux-critic" : "data-scientist"}</div><div>${replies[v]}</div>`;
+          paneBody.scrollTop = paneBody.scrollHeight;
+        }, 900 + i * 400);
+      }, 200 + i * 200);
+    });
+  }
+
+  // ───── Layout-specific rendering ─────
+  function renderLayout(name) {
+    const panes = document.getElementById("panes");
+    if (name === "council") {
+      // already present in HTML
+      return;
+    }
+    if (name === "solo") {
+      panes.innerHTML = `
+        <div class="pane doc">
+          <div class="pane-header">
+            <div class="pane-title">📄 pricing.md</div>
+            <div class="pane-tag">tier 1 · solo</div>
+          </div>
+          <div class="pane-body">
+            <div class="doc-content">
+              <h1>Pricing</h1>
+              <p>The right plan for every team — from a first experiment to a global rollout.</p>
+              <h2>Starter</h2>
+              <p>Built for tomorrow's leaders. Get the core experience with two seats, unlimited drafts, and the public model.</p>
+              <h2>Team</h2>
+              <p>Up to twenty seats, role-scoped permissions, custom retention, and a managed sandbox for evaluation.</p>
+            </div>
+          </div>
+        </div>
+        <div class="pane">
+          <div class="pane-header">
+            <div class="pane-title"><span class="voice-dot brand"></span>Brand Voice</div>
+            <div class="pane-tag">solo session</div>
+          </div>
+          <div class="pane-body">
+            <div class="turn agent">
+              <div class="who">brand-voice</div>
+              <div>Solo mode — just you and me. The doc is loaded. Ask anything.</div>
+            </div>
+          </div>
+          <div class="pane-input">
+            <input placeholder="ask brand-voice…" />
+            <button class="send-btn">Send</button>
+          </div>
+        </div>
+      `;
+    }
+    if (name === "pipeline") {
+      panes.innerHTML = `
+        <div class="pane doc">
+          <div class="pane-header">
+            <div class="pane-title">📄 pricing.md</div>
+            <div class="pane-tag">artifact</div>
+          </div>
+          <div class="pane-body">
+            <div class="doc-content">
+              <h1>Pricing</h1>
+              <p>Pipeline output will land here as it runs.</p>
+            </div>
+          </div>
+        </div>
+        <div class="pane">
+          <div class="pane-header">
+            <div class="pane-title">⚡ /run pricing-review</div>
+            <div class="pane-tag">3 steps · 1 gate</div>
+          </div>
+          <div class="pane-body">
+            <div class="step done"><div class="num">1</div><div><div><strong>brand-rewrite</strong></div><div class="step-skill">/share-prompt → brand-voice</div></div><div class="gate-label">done</div></div>
+            <div class="step running"><div class="num">2</div><div><div><strong>ux-critique</strong></div><div class="step-skill">/distill → ux-critic</div></div><div class="gate-label" style="color:var(--cp-accent)">running…</div></div>
+            <div class="step gated"><div class="num">3</div><div><div><strong>publish</strong></div><div class="step-skill">/sharepoint-page edit</div></div><div class="gate-label">gate · approval needed</div></div>
+          </div>
+          <div class="pane-input">
+            <button class="send-btn" onclick="askUser('Run step 3 — publish?', 'sharepoint-page edit on pricing.md', [{title:'Run', description:'Publish via /sharepoint-page', recommended:true}, {title:'Skip', description:'Mark step as skipped'}, {title:'Abort', description:'Stop the pipeline'}]).then(c => toast('Pipeline: ' + c))">▶ Approve gate</button>
+          </div>
+        </div>
+      `;
+    }
+    if (name === "atelier") {
+      panes.innerHTML = `<div class="empty-pane" style="grid-column:span 3;grid-row:span 2;">Atelier — freeform tile grid. (Drag-and-drop pane authoring lands in a later mockup pass.)</div>`;
+    }
+  }
+
+  // Toggle help
+  setTimeout(() => { document.getElementById("helpTip").style.display = "block"; }, 600);
+</script>
+
+</body>
+</html>
