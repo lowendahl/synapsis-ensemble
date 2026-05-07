@@ -151,7 +151,6 @@ Each role's pane has its own Clawpilot session. Roles **do not share context win
 The user is the conductor. There is no master agent. (V2 may explore an opt-in Conductor agent that auto-routes — out of MVP scope.)
 
 ### 4.6 Comment-as-channel (the integration win)
-
 Because Ensemble owns both the doc renderer and the agent panes, comments become a first-class agent channel.
 
 **Mechanics:**
@@ -169,6 +168,49 @@ Because Ensemble owns both the doc renderer and the agent panes, comments become
 **Why this matters:** today, when you want an agent's opinion on a paragraph, you screenshot or copy-paste into chat. Ensemble removes that step. The comment **is** the prompt. The reply **is** the comment. The artifact is durable — the conversation history is just the sidecar.
 
 **Existing wiring:** the Chorus inverted-MCP pattern (`chorus_list_pending` / `chorus_get_question` / `chorus_answer`) already does this for Chorus's /ask flow. Ensemble generalizes it: every `@<agent>` mention in any open MRSF sidecar becomes a Chorus-style pending question, with the agent name in the routing key.
+
+### 4.7 Base Truths (doctrine + context-engineering refs)
+
+Workspaces don't exist in a vacuum. Every Voice in a workspace needs to read against **base truths** — opinionated, durable references that exist *outside* the project being worked on.
+
+Two flavors:
+
+1. **Doctrine memory** — a Markdown / YAML repo that captures stable beliefs and rules. Examples: `brand-doctrine` (tone, what we never say, hero structure), `pricing-doctrine` (anchoring rules, tier laddering), `csu-doctrine` (account framing, scope boundaries). These are read-only references the Voice grounds against on every turn.
+
+2. **Context-engineering repo** — the CSU-Compass / Lowendahl-Ideas pattern. A structured repo with `INDEX.yaml`, `GLOSSARY.md`, `ROUTING.md`, `PRECEDENCE.md`, examples folder, etc. Voices use it the way Clawpilot's `/load` uses Tier-2 CIM today — to inhabit a domain before doing anything.
+
+**Workspace YAML extension:**
+
+```yaml
+# ~/.ensemble/workspaces/pricing-redesign/workspace.yaml
+project: pricing-redesign
+base_truths:
+  - kind: doctrine
+    name: brand-doctrine
+    path: C:\repos\brand-doctrine     # read-only, local clone
+    bind_to: [brand]                  # only the brand Voice mounts this
+  - kind: context-engineering
+    name: pricing-context-engineering
+    path: C:\repos\pricing-cim
+    tier: 2                            # CIM tier semantics
+    bind_to: ["*"]                    # mount on every Voice
+```
+
+**Read-only by contract.** Voices can `view` and `grep` base-truth paths but never `edit` or `create` inside them. Updates flow through a separate workspace whose project *is* the doctrine repo (eat your own dog food).
+
+**Drift detection.** On workspace load, Ensemble runs `git rev-parse HEAD` on each base-truth path; any uncommitted changes or unpushed commits surface as a banner ("`brand-doctrine` is 3 commits ahead of origin — recommend pull before continuing"). Same posture as Clawpilot's `/whoami`.
+
+### 4.8 Context persistence (long-running work)
+
+Borrows directly from Clawpilot's session-state machinery:
+
+- **`plan.md` per workspace** at `~/.ensemble/workspaces/<slug>/plan.md` — co-edited by Voices and the human; the durable spine of long work.
+- **Checkpoints** — every Voice's session folds the same `/checkpoint` semantics: a numbered `checkpoints/NNN-<title>.md` file capturing overview, work-done, technical-details, important-files, next-steps. Voices write their own checkpoint before context-window pressure forces a compaction.
+- **Re-load guarantee.** Restart Ensemble → every agent pane re-spawns Clawpilot with `--session resume:<last-id>` and the JSONL stream replays the last 50 turns into the pane. Mid-flight tool calls aren't replayed; aborted turns surface as "interrupted — resume?" banners.
+- **Memory hygiene loop.** `/memory-review` runs weekly inside the workspace (scheduled), surfaces stale `[ws:<slug>]` facts, asks the human to keep/forget — same protocol as Clawpilot today.
+- **Workspace memory namespace.** All Voices write into `[ws:<slug>]` by default; their personal Voice namespace is additive, not replacement. On workspace close, prompt to migrate `[ws:<slug>]` facts that became durable into the long-lived project namespace `[<slug>]`.
+
+The principle: a Voice that's been working for two days is functionally indistinguishable from a Voice you just spawned, *if* base truths + plan.md + checkpoints + memory all reload deterministically. That's the bar.
 
 ---
 
@@ -351,6 +393,7 @@ The roster is open-ended — users add their own templates or fork existing Voic
 - Synthesis as a built-in role with a structured aggregation prompt
 - Per-pane diff view when multiple roles edit the same file
 - Recording mode → export Council session as a single distilled note via `/distill`
+- **Tasks tab** — a workspace-wide task ledger. Any Voice can spawn a `Task` (definition + scope + acceptance criteria); the task gets a fresh isolated child Clawpilot session pre-loaded with project context, memory, base truths, and the spawning Voice's tool allowlist. The task runs to completion, posts its outcome back to the spawning Voice (and the Tasks tab), and asks for input *through* the spawning Voice's pane (never a separate channel) when blocked. Tasks are durable — listed as `pending / running / blocked-on-input / done / failed` with full transcript. Think of it as Trello cards, but each card is an autonomous Clawpilot subprocess scoped to one outcome.
 
 ---
 
