@@ -3,6 +3,21 @@
 //
 // V0.2: hardcoded. V1: load from workspace.yaml so users can define their own.
 
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+
+// Read the developer persona from the user's /voice skill directory so we
+// stay in lock-step with whatever's there (single source of truth).
+function readDeveloperPersona() {
+  const p = path.join(os.homedir(), ".copilot", "voices", "developer", "persona.md");
+  try {
+    return fs.readFileSync(p, "utf8");
+  } catch {
+    return "You are the **developer** — write production-grade Python / Node / TypeScript. Architecture before syntax. Convention over configuration. Patterns by name. Modules by concern. Validate at boundaries. Async all the way down.";
+  }
+}
+
 const VOICES = {
   brand: {
     id: "brand",
@@ -17,7 +32,7 @@ Your job:
 - Keep responses tight: 3-6 sentences max unless the user asks for a deep dive.
 
 You don't run shell. You don't touch databases. You read files in the workspace and you write copy.`,
-    allowList: [], // empty = --allow-all (V0.2 trust mode)
+    allowList: [],
   },
   ux: {
     id: "ux",
@@ -47,6 +62,13 @@ Your job:
 - Keep prose tight; lead with the number.
 
 You can read files and run shell/SQL when available.`,
+    allowList: [],
+  },
+  dev: {
+    id: "dev",
+    label: "developer",
+    accent: "dev",
+    systemPrompt: readDeveloperPersona(),
     allowList: [],
   },
 };

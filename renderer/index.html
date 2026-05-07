@@ -461,6 +461,7 @@
   .voice-dot.brand { background: #d97757; }
   .voice-dot.ux { background: #2f80a4; }
   .voice-dot.ds { background: #6b8e3d; }
+  .voice-dot.dev { background: #c084fc; }
   .voice-dot.pm { background: #8b5cf6; }
   .voice-dot.synth { background: var(--cp-accent); }
 
@@ -627,6 +628,7 @@
   .target-chip.brand { background: #d97757; }
   .target-chip.ux { background: #2f80a4; }
   .target-chip.ds { background: #6b8e3d; }
+  .target-chip.dev { background: #c084fc; }
   .council-send {
     background: var(--cp-accent); color: var(--cp-accent-fg);
     border: none; border-radius: 0.625rem; padding: 8px 16px;
@@ -807,6 +809,7 @@
           <label class="voice-chip"><input type="checkbox" value="brand" checked><span class="voice-dot brand"></span>brand-voice</label>
           <label class="voice-chip"><input type="checkbox" value="ux" checked><span class="voice-dot ux"></span>ux-critic</label>
           <label class="voice-chip"><input type="checkbox" value="ds" checked><span class="voice-dot ds"></span>data-scientist</label>
+          <label class="voice-chip"><input type="checkbox" value="dev" checked><span class="voice-dot dev"></span>developer</label>
         </div>
         <div class="form-hint">Per-workspace voice definitions land in V0.3 — for now this seeds <code>workspace.yaml</code>.</div>
       </div>
@@ -842,6 +845,7 @@
     <div class="rail-item"><span class="voice-dot brand"></span>brand-voice</div>
     <div class="rail-item"><span class="voice-dot ux"></span>ux-critic</div>
     <div class="rail-item"><span class="voice-dot ds"></span>data-scientist</div>
+    <div class="rail-item"><span class="voice-dot dev"></span>developer</div>
     <div class="rail-item" style="color:var(--cp-text-muted);font-size:11px;">+ add voice (V0.3)</div>
   </aside>
 
@@ -911,6 +915,10 @@
           <span class="voice-dot ds"></span>data-scientist
           <span id="ds-pings"></span>
         </button>
+        <button class="voice-tab" data-voice="dev">
+          <span class="voice-dot dev"></span>developer
+          <span id="dev-pings"></span>
+        </button>
         <div style="margin-left:auto;display:flex;align-items:center;padding:0 8px;color:var(--cp-text-muted);font-size:11px;">
           <span style="font-family:Consolas,monospace;">⌘1 ⌘2 ⌘3</span>
         </div>
@@ -935,6 +943,12 @@
               <div>Connected to <code>conversion-history.csv</code>. Ready to run A/B impact estimates and segment analysis. Mention me with <span class="mention">@ds</span>.</div>
             </div>
           </div>
+          <div class="voice-body" id="dev-body" data-voice="dev">
+            <div class="turn agent">
+              <div class="who">developer</div>
+              <div>Developer voice on. I write code as Patrik (2026 stack — Python / Node / TS). Architecture before syntax, convention over configuration. Mention me with <span class="mention">@dev</span>.</div>
+            </div>
+          </div>
         </div>
         <div class="pane-input voice-input-wrap active" data-voice="brand">
           <input id="brand-input" placeholder="ask brand-voice…" onkeydown="if(event.key==='Enter')sendToVoice('brand')" />
@@ -947,6 +961,10 @@
         <div class="pane-input voice-input-wrap" data-voice="ds">
           <input id="ds-input" placeholder="ask data-scientist…" onkeydown="if(event.key==='Enter')sendToVoice('ds')" />
           <button class="send-btn" onclick="sendToVoice('ds')">Send</button>
+        </div>
+        <div class="pane-input voice-input-wrap" data-voice="dev">
+          <input id="dev-input" placeholder="ask developer…" onkeydown="if(event.key==='Enter')sendToVoice('dev')" />
+          <button class="send-btn" onclick="sendToVoice('dev')">Send</button>
         </div>
       </div>
     </div>
@@ -988,6 +1006,17 @@
       </div>
     </div>
 
+    <div class="instrument-card">
+      <div class="instrument-name"><span class="voice-dot dev" style="display:inline-block;vertical-align:middle"></span> Developer</div>
+      <div class="instrument-list">
+        <span class="chip allowed">filesystem</span>
+        <span class="chip allowed">shell</span>
+        <span class="chip allowed">sql</span>
+        <span class="chip allowed">git</span>
+        <span class="chip allowed">/docx</span>
+      </div>
+    </div>
+
     <h4 style="text-transform:uppercase;letter-spacing:1.5px;font-size:10px;color:var(--cp-text-muted);margin:14px 4px 8px;">Pipelines</h4>
     <div class="instrument-card" style="cursor:pointer" onclick="setLayout('pipeline')">
       <div class="instrument-name">/run pricing-review</div>
@@ -1004,6 +1033,7 @@
     <span class="target-chip brand active" data-voice="brand" title="brand-voice"></span>
     <span class="target-chip ux active" data-voice="ux" title="ux-critic"></span>
     <span class="target-chip ds" data-voice="ds" title="data-scientist"></span>
+    <span class="target-chip dev active" data-voice="dev" title="developer"></span>
   </div>
   <input id="councilInput" class="council-input" placeholder='Broadcast to selected voices… (try: "review the starter tier for tone and conversion risk")' />
   <button class="council-send" onclick="sendCouncil()">Send to all ▶</button>
@@ -1026,7 +1056,7 @@
   const state = {
     safeMode: false,
     layout: "council",
-    councilTargets: { brand: true, ux: true, ds: false },
+    councilTargets: { brand: true, ux: true, ds: false, dev: true },
   };
 
   // ───── Electron integration ─────
