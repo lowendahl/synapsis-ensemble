@@ -182,7 +182,7 @@
   /* Main panes area */
   .panes {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr;
+    grid-template-columns: 1.3fr 1fr;
     gap: 10px;
     padding: 10px;
     overflow: hidden;
@@ -191,6 +191,51 @@
   .panes.solo { grid-template-columns: 1fr 0.7fr; }
   .panes.pipeline { grid-template-columns: 1fr 1fr; }
   .panes.atelier { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+  /* Voice tab strip */
+  .voice-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px 0;
+    background: var(--cp-bg-elevated);
+    border-bottom: 1px solid var(--cp-border);
+  }
+  .voice-tab {
+    background: transparent; border: 1px solid transparent;
+    border-bottom: none;
+    color: var(--cp-text-muted); padding: 6px 12px;
+    border-radius: 0.625rem 0.625rem 0 0; cursor: pointer; font: inherit;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px;
+    position: relative;
+    top: 1px;
+  }
+  .voice-tab:hover { color: var(--cp-text); background: var(--cp-surface-soft); }
+  .voice-tab.active {
+    background: var(--cp-surface);
+    color: var(--cp-text);
+    border-color: var(--cp-border);
+    border-bottom: 1px solid var(--cp-surface);
+    font-weight: 600;
+  }
+  .voice-tab .tab-ping {
+    background: var(--cp-accent); color: var(--cp-accent-fg);
+    border-radius: 999px; min-width: 16px; height: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; padding: 0 5px;
+  }
+  .voice-tab.active .tab-ping { display: none; }
+  .voice-tab .answered { color: var(--cp-success); font-size: 11px; }
+  .voice-pane-stack { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .voice-body-wrap { flex: 1; overflow: hidden; position: relative; }
+  .voice-body {
+    position: absolute; inset: 0;
+    overflow-y: auto; padding: 14px 18px;
+    display: none;
+  }
+  .voice-body.active { display: block; }
+  .voice-input-wrap { display: none; }
+  .voice-input-wrap.active { display: flex; }
 
   .pane {
     background: var(--cp-surface);
@@ -583,39 +628,58 @@
       </div>
     </div>
 
-    <!-- BRAND VOICE PANE -->
+    <!-- TABBED VOICE PANE -->
     <div class="pane">
-      <div class="pane-header">
-        <div class="pane-title"><span class="voice-dot brand"></span>Brand Voice</div>
-        <div class="pane-tag" id="brand-pings"></div>
-      </div>
-      <div class="pane-body" id="brand-body">
-        <div class="turn agent">
-          <div class="who">brand-voice</div>
-          <div>Loaded with the pricing-redesign workspace. I'm watching <code>pricing.md</code> for tone issues. Mention me with <span class="mention">@brand</span> in any comment to get a structured critique.</div>
+      <div class="voice-tabs" id="voiceTabs">
+        <button class="voice-tab active" data-voice="brand">
+          <span class="voice-dot brand"></span>brand-voice
+          <span id="brand-pings"></span>
+        </button>
+        <button class="voice-tab" data-voice="ux">
+          <span class="voice-dot ux"></span>ux-critic
+          <span id="ux-pings"></span>
+        </button>
+        <button class="voice-tab" data-voice="ds">
+          <span class="voice-dot ds"></span>data-scientist
+          <span id="ds-pings"></span>
+        </button>
+        <div style="margin-left:auto;display:flex;align-items:center;padding:0 8px;color:var(--cp-text-muted);font-size:11px;">
+          <span style="font-family:Consolas,monospace;">⌘1 ⌘2 ⌘3</span>
         </div>
       </div>
-      <div class="pane-input">
-        <input placeholder="ask brand-voice…" />
-        <button class="send-btn" onclick="toast('1:1 send (mock)')">Send</button>
-      </div>
-    </div>
-
-    <!-- UX CRITIC PANE -->
-    <div class="pane">
-      <div class="pane-header">
-        <div class="pane-title"><span class="voice-dot ux"></span>UX Critic</div>
-        <div class="pane-tag" id="ux-pings"></div>
-      </div>
-      <div class="pane-body" id="ux-body">
-        <div class="turn agent">
-          <div class="who">ux-critic</div>
-          <div>Workspace loaded. I read flow, not copy. I'll flag missing benefits, friction, and call-to-action gaps.</div>
+      <div class="voice-pane-stack">
+        <div class="voice-body-wrap">
+          <div class="voice-body active" id="brand-body" data-voice="brand">
+            <div class="turn agent">
+              <div class="who">brand-voice</div>
+              <div>Loaded with the pricing-redesign workspace. I'm watching <code>pricing.md</code> for tone issues. Mention me with <span class="mention">@brand</span> in any comment to get a structured critique.</div>
+            </div>
+          </div>
+          <div class="voice-body" id="ux-body" data-voice="ux">
+            <div class="turn agent">
+              <div class="who">ux-critic</div>
+              <div>Workspace loaded. I read flow, not copy. I'll flag missing benefits, friction, and call-to-action gaps.</div>
+            </div>
+          </div>
+          <div class="voice-body" id="ds-body" data-voice="ds">
+            <div class="turn agent">
+              <div class="who">data-scientist</div>
+              <div>Connected to <code>conversion-history.csv</code>. Ready to run A/B impact estimates and segment analysis. Mention me with <span class="mention">@ds</span>.</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="pane-input">
-        <input placeholder="ask ux-critic…" />
-        <button class="send-btn" onclick="toast('1:1 send (mock)')">Send</button>
+        <div class="pane-input voice-input-wrap active" data-voice="brand">
+          <input placeholder="ask brand-voice…" />
+          <button class="send-btn" onclick="toast('1:1 send to brand-voice (mock)')">Send</button>
+        </div>
+        <div class="pane-input voice-input-wrap" data-voice="ux">
+          <input placeholder="ask ux-critic…" />
+          <button class="send-btn" onclick="toast('1:1 send to ux-critic (mock)')">Send</button>
+        </div>
+        <div class="pane-input voice-input-wrap" data-voice="ds">
+          <input placeholder="ask data-scientist…" />
+          <button class="send-btn" onclick="toast('1:1 send to data-scientist (mock)')">Send</button>
+        </div>
       </div>
     </div>
   </section>
@@ -697,6 +761,41 @@
     councilTargets: { brand: true, ux: true, ds: false },
   };
 
+  // ───── Voice tabs ─────
+  function activateVoiceTab(voice) {
+    document.querySelectorAll(".voice-tab").forEach(t => t.classList.toggle("active", t.dataset.voice === voice));
+    document.querySelectorAll(".voice-body").forEach(b => b.classList.toggle("active", b.dataset.voice === voice));
+    document.querySelectorAll(".voice-input-wrap").forEach(b => b.classList.toggle("active", b.dataset.voice === voice));
+    // Clear ping badge on the tab being activated
+    const ping = document.getElementById(voice + "-pings");
+    if (ping) {
+      const badge = ping.querySelector(".tab-ping");
+      if (badge) badge.remove();
+    }
+  }
+  document.querySelectorAll(".voice-tab").forEach(tab => {
+    tab.addEventListener("click", () => activateVoiceTab(tab.dataset.voice));
+  });
+  // Keyboard shortcuts ⌘/Ctrl + 1/2/3
+  window.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && ["1","2","3"].includes(e.key)) {
+      const map = { "1": "brand", "2": "ux", "3": "ds" };
+      activateVoiceTab(map[e.key]);
+      e.preventDefault();
+    }
+  });
+
+  function setTabPing(voice, count) {
+    const tag = document.getElementById(voice + "-pings");
+    if (!tag) return;
+    tag.innerHTML = `<span class="tab-ping">${count}</span>`;
+  }
+  function setTabAnswered(voice) {
+    const tag = document.getElementById(voice + "-pings");
+    if (!tag) return;
+    tag.innerHTML = `<span class="answered">✓</span>`;
+  }
+
   // ───── Theme toggle ─────
   document.getElementById("themeBtn").onclick = () => {
     const cur = document.documentElement.getAttribute("data-theme");
@@ -775,21 +874,23 @@
     demoFired = true;
     document.getElementById("thread-7").style.display = "block";
 
-    // Mark pings
-    document.getElementById("brand-pings").innerHTML = '<span class="ping-badge">1</span> ping';
-    document.getElementById("ux-pings").innerHTML = '<span class="ping-badge">1</span> ping';
+    // Mark pings on the tabs (not on the active tab)
+    setTabPing("brand", 1);
+    setTabPing("ux", 1);
+    // Switch to brand tab so user sees the first reply land
+    activateVoiceTab("brand");
+    toast("Comment posted — pinged @brand and @ux");
 
     // Brand pane: ping → typing → reply
-    setTimeout(() => streamReply("brand-body", "brand-voice", brandReplyText, "brand-reply", "brand-reply-text", "brand-pings"), 400);
-    setTimeout(() => streamReply("ux-body", "ux-critic", uxReplyText, "ux-reply", "ux-reply-text", "ux-pings"), 1100);
+    setTimeout(() => streamReply("brand-body", "brand-voice", brandReplyText, "brand-reply", "brand-reply-text", "brand"), 400);
+    setTimeout(() => streamReply("ux-body", "ux-critic", uxReplyText, "ux-reply", "ux-reply-text", "ux"), 1100);
   }
 
-  function streamReply(paneBodyId, voiceName, html, commentId, commentTextId, pingTagId) {
+  function streamReply(paneBodyId, voiceName, html, commentId, commentTextId, voiceKey) {
     const body = document.getElementById(paneBodyId);
-    // Add the ping turn
     body.insertAdjacentHTML("beforeend", `
       <div class="turn ping">
-        <div class="who">@${voiceName === "brand-voice" ? "brand" : "ux"} pinged from pricing.md L7</div>
+        <div class="who">@${voiceKey} pinged from pricing.md L7</div>
         <div style="font-size:12px;color:var(--cp-text-muted);">comment by patrik · selection: "Built for tomorrow's leaders."</div>
       </div>
       <div class="turn agent" id="${voiceName}-typing">
@@ -799,18 +900,23 @@
     `);
     body.scrollTop = body.scrollHeight;
 
-    // Show comment thread placeholder
     document.getElementById(commentId).style.display = "block";
     const target = document.getElementById(commentTextId);
     target.innerHTML = '<span class="typing">…</span>';
 
-    // Stream after a beat
     setTimeout(() => {
       const typingEl = document.getElementById(`${voiceName}-typing`);
       typingEl.innerHTML = `<div class="who">${voiceName}</div><div>${html}</div>`;
       target.innerHTML = html;
-      // Update ping tag to "answered"
-      document.getElementById(pingTagId).innerHTML = '<span style="color:var(--cp-success);">✓ answered</span>';
+      // If this voice's tab isn't the active one, mark answered (badge persists)
+      const activeTab = document.querySelector(".voice-tab.active");
+      if (!activeTab || activeTab.dataset.voice !== voiceKey) {
+        setTabAnswered(voiceKey);
+      } else {
+        // Clear ping since we're already viewing it
+        const tag = document.getElementById(voiceKey + "-pings");
+        if (tag) tag.innerHTML = "";
+      }
       body.scrollTop = body.scrollHeight;
     }, 1400);
   }
@@ -847,6 +953,10 @@
     targets.forEach((v, i) => {
       const paneBody = document.getElementById(v + "-body");
       if (!paneBody) return;
+      // If the targeted voice isn't the active tab, set a ping
+      const activeTab = document.querySelector(".voice-tab.active");
+      const isActive = activeTab && activeTab.dataset.voice === v;
+      if (!isActive) setTabPing(v, 1);
       setTimeout(() => {
         paneBody.insertAdjacentHTML("beforeend", `
           <div class="turn user">
@@ -860,11 +970,18 @@
         `);
         paneBody.scrollTop = paneBody.scrollHeight;
         setTimeout(() => {
-          // Replace last typing
           const turns = paneBody.querySelectorAll(".turn.agent");
           const last = turns[turns.length - 1];
           last.innerHTML = `<div class="who">${v === "brand" ? "brand-voice" : v === "ux" ? "ux-critic" : "data-scientist"}</div><div>${replies[v]}</div>`;
           paneBody.scrollTop = paneBody.scrollHeight;
+          // Switch ping → answered if not the active tab
+          const stillActive = document.querySelector(".voice-tab.active");
+          if (!stillActive || stillActive.dataset.voice !== v) {
+            setTabAnswered(v);
+          } else {
+            const tag = document.getElementById(v + "-pings");
+            if (tag) tag.innerHTML = "";
+          }
         }, 900 + i * 400);
       }, 200 + i * 200);
     });
