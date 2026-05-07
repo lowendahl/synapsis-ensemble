@@ -1,6 +1,6 @@
 {
   "name": "synapsis-ensemble",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Many voices. Many instruments. One workspace. (Symbiont · Ensemble)",
   "main": "src/main.js",
   "type": "commonjs",
@@ -18,6 +18,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "js-yaml": "^4.1.1",
     "marked": "^12.0.2"
   },
   "build": {
@@ -33,7 +34,12 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
