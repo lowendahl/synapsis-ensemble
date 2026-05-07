@@ -145,55 +145,313 @@ ipcMain.handle("workspace:pick", async () => {
   return await loadWorkspace(result.filePaths[0]);
 });
 
-ipcMain.handle("workspace:create", async () => {
+ipcMain.handle("dialog:pick-folder", async (_e, opts = {}) => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: "Create New Workspace — pick parent folder, then name it",
+    title: opts.title || "Pick folder",
     properties: ["openDirectory", "createDirectory"],
+    defaultPath: opts.defaultPath,
   });
   if (result.canceled || !result.filePaths.length) return null;
-  const parent = result.filePaths[0];
-  // Ask for a workspace name
-  const name = await promptForName();
-  if (!name) return null;
-  const folder = path.join(parent, name);
+  return result.filePaths[0];
+});
+
+ipcMain.handle("workspace:create", async (_e, opts) => {
+  let name, parent, voices, tier;
+  if (opts && typeof opts === "object" && opts.name && opts.parentFolder) {
+    name = String(opts.name).trim();
+    parent = String(opts.parentFolder);
+    voices = Array.isArray(opts.voices) && opts.voices.length ? opts.voices : ["brand", "ux", "ds"];
+    tier = (opts.tier === 0 || opts.tier === 2) ? opts.tier : 1;
+  } else {
+    // Legacy fallback (kept for menu -> open shortcut)
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Create New Workspace — pick parent folder, then name it",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    parent = result.filePaths[0];
+    name = await promptForName();
+    if (!name) return null;
+    voices = ["brand", "ux", "ds"];
+    tier = 1;
+  }
+  if (!name || !parent) return null;
+  const safeName = name.replace(/[\\/:*?"<>|]/g, "-").trim();
+  if (!safeName) return { error: "Invalid workspace name" };
+  const folder = path.join(parent, safeName);
   try {
     await fs.mkdir(folder, { recursive: false });
   } catch (e) {
     if (e.code === "EEXIST") {
       const ok = await dialog.showMessageBox(mainWindow, {
         type: "question", buttons: ["Open existing", "Cancel"], defaultId: 0, cancelId: 1,
-        message: `"${name}" already exists in that folder. Open it instead?`,
+        message: `"${safeName}" already exists in that folder. Open it instead?`,
       });
       if (ok.response !== 0) return null;
-    } else {
-      throw e;
-    }
+    } else { throw e; }
   }
-  // Seed default workspace.yaml + README + folders
-  const seedYaml = `# Ensemble workspace manifest
-name: ${name}
-slug: ${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+  const slug = safeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const today = new Date().toISOString().slice(0, 10);
+  const ctxDir = path.join(folder, "clawpilot");
+  await fs.mkdir(ctxDir, { recursive: true });
 
-# Sources of truth — the doctrine repos and context-engineering folders
-# voices should anchor on. Globs are read relative to the workspace root
-# unless they start with a drive letter or '/'.
+  // workspace.yaml
+  const voicesYaml = voices.map((v) => `  - ${v}`).join("\n");
+  const seedYaml = `# Ensemble workspace manifest
+name: ${safeName}
+slug: ${slug}
+mission: ""
+
+# Context-inference tier (0=light, 1=default, 2=full domain). See clawpilot/INDEX.yaml.
+tier: ${tier}
+
+# Sources of truth — doctrine repos and context-engineering folders voices anchor on.
+# Paths are read relative to the workspace root unless absolute.
 base_truths: []
   # - label: Doctrine
   #   path: doctrine/
   # - label: Context engineering
   #   path: C:/repos/CSU-Context-Engineering
 
-# Voice roster (V0.2 uses the built-ins; per-workspace overrides land in V0.3)
 voices:
-  - brand
-  - ux
-  - ds
+${voicesYaml}
 `;
-  const readme = `# ${name}\n\nNew Ensemble workspace.\n\n- Drop your project files here (Markdown, CSVs, images).\n- Edit \`workspace.yaml\` to register Sources of Truth.\n- Open the council bar to broadcast a question to all voices.\n`;
-  try {
-    await fs.writeFile(path.join(folder, "workspace.yaml"), seedYaml, "utf8");
-    await fs.writeFile(path.join(folder, "README.md"), readme, "utf8");
-  } catch { /* if files exist already, leave them */ }
+
+  // README
+  const readme = `# ${safeName}
+
+New Ensemble workspace.
+
+## Layout
+
+- \`workspace.yaml\` — manifest (mission, base truths, voices)
+- \`clawpilot/\` — context-inference model (CIM) the voices auto-load
+- _your project files here_
+
+## Loading
+
+When this workspace is opened, every voice receives \`clawpilot/context.md\` and \`clawpilot/conventions.md\` as system context. Long-term preferences belong in \`clawpilot/memory.md\`.
+`;
+
+  // ── clawpilot/ Context Inference Model ─────────────────────────────────────
+  const contextMd = `<!-- inference-tier: ${tier} -->
+# ${safeName} — Context
+
+## Mission
+_(One-line statement of what this workspace exists to do. Edit me.)_
+
+## Canonical paths
+| What | Where |
+|---|---|
+| Workspace root | \`${folder.replace(/\\/g, "/")}\` |
+| Doctrine | _add base_truths in workspace.yaml_ |
+
+## Key facts
+- _Add the things every voice should know before doing anything in this project._
+- _e.g. "Audience is enterprise CIOs", "Brand voice is concrete + measured", "Never use the word 'leverage'"._
+
+## On load, do this
+1. Read this file.
+2. Read \`conventions.md\`.
+3. Read \`memory.md\` for accumulated preferences and corrections.
+4. Skim the file tree for \`README.md\` and any \`*.md\` at the root.
+`;
+
+  const conventionsMd = `# ${safeName} — Conventions
+
+## Edit policy
+- Make precise, surgical changes. Don't touch unrelated code.
+- Never invent file content — read first.
+
+## Naming
+- _Add naming rules._
+
+## Memory namespace
+\`[${slug}]\` — prefix scoped facts with this when the user wants something remembered.
+
+## Out of scope
+- _Add things this workspace deliberately does NOT cover._
+
+## Never do
+- _Add hard rules. The "never" list is more important than the "do" list._
+`;
+
+  const memoryMd = `# ${safeName} — Memory
+
+> Long-term notebook for accumulated preferences, repeated corrections, and stable context.
+> The voices auto-load this on every turn. Append entries; don't rewrite history.
+
+## Preferences
+- _e.g. "Patrik prefers tables over bullet lists for comparisons."_
+
+## Recurring corrections
+- _Things you've had to correct more than once. Logging them here means the voices stop making the mistake._
+
+## Stable context
+- _Background facts that change rarely but matter._
+`;
+
+  // Tier-1 CIM files
+  const glossaryMd = `# ${safeName} — Glossary
+
+Project-specific terms. Authoritative — if a term appears here, prefer this definition over general knowledge.
+
+| Term | Meaning | Aliases |
+|---|---|---|
+| _term_ | _meaning_ | _alias_ |
+`;
+
+  const routingMd = `# ${safeName} — Routing
+
+Maps user intents to the right file/skill/MCP.
+
+| Intent | Go to |
+|---|---|
+| _e.g. "edit a doc"_ | _e.g. "open in Files tree, send to brand-voice"_ |
+`;
+
+  const outOfScopeMd = `# ${safeName} — Out of scope
+
+What this workspace deliberately does NOT cover:
+
+- _e.g. "code generation"_
+- _e.g. "competitor research"_
+`;
+
+  const precedenceMd = `# ${safeName} — Precedence
+
+When sources conflict, this is the order of authority:
+
+1. \`clawpilot/conventions.md\` (project rules)
+2. \`clawpilot/context.md\` (project mission + key facts)
+3. \`clawpilot/memory.md\` (accumulated preferences)
+4. \`workspace.yaml\` base truths
+5. Global Clawpilot memory
+6. General model knowledge
+`;
+
+  const indexYaml = `project: ${slug}
+tier: ${tier}
+created: ${today}
+entry_points:
+  context: clawpilot/context.md
+  conventions: clawpilot/conventions.md
+  memory: clawpilot/memory.md
+  glossary: clawpilot/GLOSSARY.md
+  routing: clawpilot/ROUTING.md
+  precedence: clawpilot/PRECEDENCE.md
+  out_of_scope: clawpilot/OUT-OF-SCOPE.md
+concepts: []   # [{slug, file, summary}] — populate as the project matures
+`;
+
+  const changelogMd = `# ${safeName} — Changelog
+
+## ${today}
+- Workspace scaffolded at tier ${tier} via Ensemble Create dialog.
+`;
+
+  // Tier-2 extras
+  const agentInstructionsMd = `# ${safeName} — Agent Instructions
+
+Long-form instructions for any voice newly loaded into this project.
+
+## Purpose
+_(What this project exists to achieve.)_
+
+## Invariants
+- _Things that must remain true._
+
+## Do this
+- _Default operating mode._
+
+## Don't do this
+- _Sharp edges._
+
+## Escalation
+- _When to stop and ask._
+`;
+
+  const dataSourcesMd = `# ${safeName} — Data Sources
+
+| Source | Path / URL | Trust | Refresh | Owner |
+|---|---|---|---|---|
+| _name_ | _location_ | _high/medium/low_ | _cadence_ | _person_ |
+`;
+
+  const examplesMd = `# ${safeName} — Examples
+
+Worked examples of common requests + ideal responses.
+
+## Example 1: _request_
+**Ask:** _user phrasing_
+**Ideal response:** _what good looks like_
+`;
+
+  const indexByEntityMd = `# ${safeName} — Index by Entity
+
+Alternate index keyed by domain entity.
+
+| Entity | Files |
+|---|---|
+| _entity_ | _files_ |
+`;
+
+  const localSliceMd = `# ${safeName} — Local Slice
+
+What lives only in this workspace vs. what's upstream. Marks PII boundaries.
+`;
+
+  const validationMd = `# ${safeName} — Validation
+
+Sanity-check protocols. How to know the inference model is healthy.
+`;
+
+  const exitCriteriaYaml = `# Conditions for "this project is done" or "ready to graduate to a higher tier".
+done_when: []
+graduate_to_tier_${tier + 1}_when: []
+`;
+
+  const syncWorkflowMd = `# ${safeName} — Sync Workflow
+
+If this workspace syncs with an external source, document the protocol here.
+`;
+
+  const writes = [
+    [path.join(folder, "workspace.yaml"), seedYaml],
+    [path.join(folder, "README.md"), readme],
+    [path.join(ctxDir, "context.md"), contextMd],
+    [path.join(ctxDir, "conventions.md"), conventionsMd],
+    [path.join(ctxDir, "memory.md"), memoryMd],
+  ];
+  if (tier >= 1) {
+    writes.push(
+      [path.join(ctxDir, "GLOSSARY.md"), glossaryMd],
+      [path.join(ctxDir, "ROUTING.md"), routingMd],
+      [path.join(ctxDir, "OUT-OF-SCOPE.md"), outOfScopeMd],
+      [path.join(ctxDir, "PRECEDENCE.md"), precedenceMd],
+      [path.join(ctxDir, "INDEX.yaml"), indexYaml],
+      [path.join(ctxDir, "CHANGELOG.md"), changelogMd],
+    );
+  }
+  if (tier >= 2) {
+    writes.push(
+      [path.join(ctxDir, "AGENT-INSTRUCTIONS.md"), agentInstructionsMd],
+      [path.join(ctxDir, "DATA-SOURCES.md"), dataSourcesMd],
+      [path.join(ctxDir, "EXAMPLES.md"), examplesMd],
+      [path.join(ctxDir, "INDEX-by-entity.md"), indexByEntityMd],
+      [path.join(ctxDir, "LOCAL-SLICE.md"), localSliceMd],
+      [path.join(ctxDir, "VALIDATION.md"), validationMd],
+      [path.join(ctxDir, "exit-criteria.yaml"), exitCriteriaYaml],
+      [path.join(ctxDir, "SYNC-WORKFLOW.md"), syncWorkflowMd],
+    );
+  }
+  for (const [p, content] of writes) {
+    try {
+      await fs.access(p);  // skip if exists
+    } catch {
+      try { await fs.writeFile(p, content, "utf8"); } catch { /* ignore */ }
+    }
+  }
   return await loadWorkspace(folder);
 });
 
@@ -319,12 +577,31 @@ async function loadWorkspace(folder) {
   const tree = await buildTree(folder);
   const manifest = await loadWorkspaceManifest(folder);
   const baseTruths = await resolveBaseTruths(folder, manifest);
+  // Load clawpilot/ doctrine files for auto-injection into voice prompts.
+  // These are the persistent "operating manual" + long-term memory pattern from
+  // the Claude Code transcript: context.md = SOP, conventions.md = rules, memory.md = preferences.
+  const ctxDir = path.join(folder, "clawpilot");
+  async function readIfExists(name) {
+    try { return await fs.readFile(path.join(ctxDir, name), "utf8"); }
+    catch { return null; }
+  }
+  const doctrine = {
+    context: await readIfExists("context.md"),
+    conventions: await readIfExists("conventions.md"),
+    memory: await readIfExists("memory.md"),
+    glossary: await readIfExists("GLOSSARY.md"),
+    routing: await readIfExists("ROUTING.md"),
+    precedence: await readIfExists("PRECEDENCE.md"),
+    outOfScope: await readIfExists("OUT-OF-SCOPE.md"),
+  };
   currentWorkspace = {
     path: folder,
     slug,
     tree,
     manifest: manifest || null,
     baseTruths,
+    doctrine,
+    hasDoctrine: !!(doctrine.context || doctrine.conventions),
   };
   await pushRecent(folder, slug);
   return currentWorkspace;
@@ -371,40 +648,69 @@ ipcMain.handle("clawpilot:status", async () => clawpilot.status());
 ipcMain.handle("clawpilot:voices", async () => listVoices().map((v) => ({ id: v.id, label: v.label, accent: v.accent })));
 
 ipcMain.handle("clawpilot:start", async (e, args) => {
-  const { voice: voiceId, prompt, resumeSessionId, model } = args || {};
+  const { voice: voiceId, prompt, resumeSessionId, model, planMode } = args || {};
   const voice = getVoice(voiceId);
   if (!voice) return { ok: false, error: `Unknown voice: ${voiceId}` };
   if (!prompt || !String(prompt).trim()) return { ok: false, error: "Empty prompt" };
 
   // Build a workspace preamble that anchors the voice on the project
-  // and its registered Sources of Truth. Voices use the filesystem MCP
-  // already wired into Clawpilot to actually read these.
+  // and its registered Sources of Truth + clawpilot/ doctrine.
   let preamble = "";
   if (currentWorkspace) {
     const lines = [];
     lines.push(`Active workspace: ${currentWorkspace.slug}`);
     lines.push(`Workspace root: ${currentWorkspace.path}`);
     if (currentWorkspace.manifest?.name) lines.push(`Project: ${currentWorkspace.manifest.name}`);
-    if (currentWorkspace.manifest?.description) lines.push(`Description: ${currentWorkspace.manifest.description}`);
+    if (currentWorkspace.manifest?.mission) lines.push(`Mission: ${currentWorkspace.manifest.mission}`);
+    else if (currentWorkspace.manifest?.description) lines.push(`Description: ${currentWorkspace.manifest.description}`);
+
+    // Inline doctrine — voices receive this on every turn (CLAUDE.md pattern).
+    const d = currentWorkspace.doctrine || {};
+    if (d.context) {
+      lines.push("\n--- clawpilot/context.md ---\n" + d.context.trim());
+    }
+    if (d.conventions) {
+      lines.push("\n--- clawpilot/conventions.md ---\n" + d.conventions.trim());
+    }
+    if (d.memory) {
+      lines.push("\n--- clawpilot/memory.md (long-term notebook) ---\n" + d.memory.trim());
+    }
+    if (d.precedence) {
+      lines.push("\n--- clawpilot/PRECEDENCE.md ---\n" + d.precedence.trim());
+    }
+
     const bt = (currentWorkspace.baseTruths || []).filter((b) => b.exists);
     if (bt.length) {
       lines.push("");
-      lines.push("Sources of truth (anchor your reasoning here when relevant — read with the filesystem MCP):");
+      lines.push("Sources of truth (read with the filesystem MCP when relevant):");
       for (const b of bt) lines.push(`  • ${b.label} → ${b.path}${b.external ? " (external)" : ""}`);
     }
+    if (d.glossary) lines.push(`\nGlossary lives at clawpilot/GLOSSARY.md — read it before using domain terms.`);
+    if (d.routing)  lines.push(`Routing map lives at clawpilot/ROUTING.md.`);
+    if (d.outOfScope) lines.push(`Out-of-scope list lives at clawpilot/OUT-OF-SCOPE.md.`);
+
     lines.push("");
-    lines.push("Use the filesystem MCP to read workspace files. Do not invent file contents — read them. When you cite a file, give its path.");
+    lines.push("Use the filesystem MCP to read workspace files. Do not invent file contents — read them. Cite paths when referencing files.");
     preamble = lines.join("\n");
   }
-  const fullSystem = preamble
+
+  // Plan-mode prefix: voice replies with an approach + risks, no destructive tools.
+  const planPrefix = planMode
+    ? "\n\n--- PLAN MODE ---\n" +
+      "You are in PLAN mode. Do NOT call any tools that mutate files (no edit/write/run). " +
+      "You MAY read files to inform the plan. Reply with a numbered approach, the files you'd touch, the risks, and any open questions. " +
+      "End with: 'Proceed?' so the human can approve before you act.\n"
+    : "";
+
+  const fullSystem = (preamble
     ? `${voice.systemPrompt}\n\n--- workspace context ---\n${preamble}`
-    : voice.systemPrompt;
+    : voice.systemPrompt) + planPrefix;
 
   return clawpilot.startRun(e.sender, {
     voice: voice.id,
     prompt: String(prompt),
     systemPrompt: fullSystem,
-    allowList: voice.allowList && voice.allowList.length ? voice.allowList : undefined,
+    allowList: planMode ? ["read"] : (voice.allowList && voice.allowList.length ? voice.allowList : undefined),
     resumeSessionId: resumeSessionId || undefined,
     model: model || undefined,
     cwd: currentWorkspace ? currentWorkspace.path : undefined,

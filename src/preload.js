@@ -2,7 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ensemble", {
   pickWorkspace: () => ipcRenderer.invoke("workspace:pick"),
-  createWorkspace: () => ipcRenderer.invoke("workspace:create"),
+  pickFolder: (opts) => ipcRenderer.invoke("dialog:pick-folder", opts),
+  createWorkspace: (opts) => ipcRenderer.invoke("workspace:create", opts),
   openWorkspace: (folder) => ipcRenderer.invoke("workspace:open", folder),
   recentWorkspaces: () => ipcRenderer.invoke("workspace:recent"),
   removeRecent: (folder) => ipcRenderer.invoke("workspace:remove-recent", folder),

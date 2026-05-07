@@ -278,6 +278,94 @@
   .recent-card:hover .remove { opacity: 1; }
   .recent-card .remove:hover { color: var(--cp-danger); background: var(--cp-surface-soft); }
   .welcome-empty-recents { color: var(--cp-text-muted); font-size: 12px; font-style: italic; }
+
+  /* ── Create-workspace modal ───────────────────────────────────── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--cp-bg-elevated);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    width: 580px; max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 60px);
+    box-shadow: var(--cp-shadow);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--cp-border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .modal-close {
+    background: transparent; border: none; font-size: 20px;
+    color: var(--cp-text-muted); cursor: pointer; line-height: 1;
+    padding: 4px 8px; border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--cp-surface-soft); color: var(--cp-text); }
+  .modal-body { padding: 18px 20px; overflow-y: auto; }
+  .modal-footer {
+    padding: 12px 20px; border-top: 1px solid var(--cp-border);
+    display: flex; justify-content: flex-end; gap: 10px;
+    background: var(--cp-bg);
+  }
+  .form-row { margin-bottom: 16px; }
+  .form-row > label {
+    display: block; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--cp-text-muted); margin-bottom: 6px;
+  }
+  .form-row input[type="text"] {
+    width: 100%; box-sizing: border-box;
+    padding: 8px 10px; font-size: 13px;
+    background: var(--cp-surface); color: var(--cp-text);
+    border: 1px solid var(--cp-border); border-radius: 8px;
+    font-family: "Segoe UI", Aptos, Calibri, sans-serif;
+  }
+  .form-row input[type="text"]:focus { outline: none; border-color: var(--cp-accent); }
+  .form-hint { font-size: 11px; color: var(--cp-text-muted); margin-top: 4px; }
+  .parent-pick { display: flex; gap: 8px; }
+  .parent-pick input { flex: 1; }
+
+  .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tier-card {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 10px; border-radius: 8px; cursor: pointer;
+    background: var(--cp-surface); border: 1px solid var(--cp-border);
+    font-size: 12.5px; transition: all 0.12s;
+  }
+  .tier-card:hover { border-color: var(--cp-border-strong); }
+  .tier-card.selected { border-color: var(--cp-accent); background: var(--cp-accent-soft); }
+  .tier-card input { margin-top: 2px; flex-shrink: 0; }
+  .tier-card .t-sub { font-size: 11px; color: var(--cp-text-muted); margin-top: 2px; line-height: 1.4; font-weight: normal; }
+
+  .voice-pick { display: flex; gap: 8px; flex-wrap: wrap; }
+  .voice-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 8px;
+    background: var(--cp-surface); border: 1px solid var(--cp-border);
+    font-size: 12px; cursor: pointer;
+  }
+  .voice-chip input { margin: 0; }
+
+  /* Plan mode */
+  .icon-btn.plan-on {
+    background: var(--cp-accent-soft); color: var(--cp-accent);
+    border: 1px solid var(--cp-accent);
+  }
+  body[data-plan-mode="1"] .panes::before {
+    content: "🧭 PLAN MODE — voices propose before acting. Read-only tools.";
+    display: block;
+    background: var(--cp-accent-soft); color: var(--cp-accent);
+    border-bottom: 1px solid var(--cp-accent);
+    padding: 6px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+    text-align: center;
+  }
   .rail-mission {
     background: var(--cp-surface);
     border: 1px solid var(--cp-border);
@@ -644,6 +732,7 @@
   </div>
   <div class="top-actions">
     <span id="clawStatus" title="Clawpilot host status" style="font-size:11px;color:var(--cp-text-muted);padding:0 8px;border-right:1px solid var(--cp-border);">⚪ checking…</span>
+    <button class="icon-btn" id="planModeBtn" title="Plan mode = voices propose before acting; no destructive tools">🧭 Mode: Act</button>
     <button class="icon-btn" id="safeModeBtn" title="Toggle safe-mode">🛡 Safe-mode: off</button>
     <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
     <button class="icon-btn" onclick="document.getElementById('helpTip').style.display='block'">?</button>
@@ -680,6 +769,55 @@
     <h3>Recent workspaces</h3>
     <div class="recent-grid" id="recentGrid">
       <div class="welcome-empty-recents">No recent workspaces yet — open or create one to begin.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create-workspace modal -->
+<div class="modal-backdrop" id="createModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Create workspace</h2>
+      <button class="modal-close" id="createCancelX" title="Cancel">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Workspace name</label>
+        <input type="text" id="cw-name" placeholder="e.g. pricing-redesign" />
+        <div class="form-hint">Folder name. Becomes the default slug.</div>
+      </div>
+
+      <div class="form-row">
+        <label>Parent folder</label>
+        <div class="parent-pick">
+          <input type="text" id="cw-parent" placeholder="C:\repos" readonly />
+          <button class="icon-btn" id="cw-parent-btn">Choose…</button>
+        </div>
+        <div class="form-hint">The new workspace folder will be created here.</div>
+      </div>
+
+      <div class="form-row">
+        <label>Context-inference tier</label>
+        <div class="tier-grid">
+          <label class="tier-card"><input type="radio" name="cw-tier" value="0"><div><strong>Light</strong><div class="t-sub">context.md + conventions.md only. Quick projects.</div></div></label>
+          <label class="tier-card selected"><input type="radio" name="cw-tier" value="1" checked><div><strong>Default · tier 1</strong><div class="t-sub">+ glossary, routing, precedence, out-of-scope, index, changelog.</div></div></label>
+          <label class="tier-card"><input type="radio" name="cw-tier" value="2"><div><strong>Full · tier 2</strong><div class="t-sub">+ agent-instructions, data-sources, examples, validation, exit-criteria.</div></div></label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Voices</label>
+        <div class="voice-pick">
+          <label class="voice-chip"><input type="checkbox" value="brand" checked><span class="voice-dot brand"></span>brand-voice</label>
+          <label class="voice-chip"><input type="checkbox" value="ux" checked><span class="voice-dot ux"></span>ux-critic</label>
+          <label class="voice-chip"><input type="checkbox" value="ds" checked><span class="voice-dot ds"></span>data-scientist</label>
+        </div>
+        <div class="form-hint">Per-workspace voice definitions land in V0.3 — for now this seeds <code>workspace.yaml</code>.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="icon-btn" id="createCancelBtn">Cancel</button>
+      <button class="welcome-btn primary" id="createConfirmBtn" style="min-width:auto;padding:8px 18px;font-size:13px;">Create workspace</button>
     </div>
   </div>
 </div>
@@ -980,14 +1118,67 @@
 
   async function createWorkspace() {
     if (!isElectron) { toast("Web preview — Electron only"); return; }
-    try {
-      const ws = await window.ensemble.createWorkspace();
-      if (!ws) return;
-      applyWorkspace(ws);
-      hideWelcome();
-    } catch (e) {
-      toast("Failed to create workspace: " + e.message);
-    }
+    openCreateModal();
+  }
+
+  // ── Create-workspace modal ────────────────────────────────────────
+  function openCreateModal() {
+    const m = document.getElementById("createModal");
+    if (!m) return;
+    document.getElementById("cw-name").value = "";
+    document.getElementById("cw-parent").value = "";
+    // Default tier 1
+    document.querySelectorAll('input[name="cw-tier"]').forEach((r) => { r.checked = r.value === "1"; });
+    document.querySelectorAll(".tier-card").forEach((c) => c.classList.toggle("selected", !!c.querySelector('input:checked')));
+    // All voices on
+    m.querySelectorAll('.voice-pick input').forEach((c) => c.checked = true);
+    m.classList.add("show");
+    setTimeout(() => document.getElementById("cw-name").focus(), 50);
+  }
+  function closeCreateModal() { document.getElementById("createModal").classList.remove("show"); }
+
+  function wireCreateModal() {
+    document.getElementById("createCancelX").onclick = closeCreateModal;
+    document.getElementById("createCancelBtn").onclick = closeCreateModal;
+    document.getElementById("createModal").addEventListener("click", (e) => {
+      if (e.target.id === "createModal") closeCreateModal();
+    });
+    // Tier-card visual selection
+    document.querySelectorAll(".tier-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll(".tier-card").forEach((c) => c.classList.remove("selected"));
+        card.classList.add("selected");
+        const r = card.querySelector('input[type="radio"]');
+        if (r) r.checked = true;
+      });
+    });
+    document.getElementById("cw-parent-btn").onclick = async () => {
+      const folder = await window.ensemble.pickFolder({ title: "Pick parent folder for the new workspace" });
+      if (folder) document.getElementById("cw-parent").value = folder;
+    };
+    document.getElementById("createConfirmBtn").onclick = async () => {
+      const name = document.getElementById("cw-name").value.trim();
+      const parent = document.getElementById("cw-parent").value.trim();
+      const tier = parseInt(document.querySelector('input[name="cw-tier"]:checked')?.value ?? "1", 10);
+      const voices = Array.from(document.querySelectorAll('.voice-pick input:checked')).map((c) => c.value);
+      if (!name) { toast("Give your workspace a name"); return; }
+      if (!parent) { toast("Pick a parent folder"); return; }
+      if (!voices.length) { toast("Pick at least one voice"); return; }
+      const btn = document.getElementById("createConfirmBtn");
+      btn.disabled = true; btn.textContent = "Creating…";
+      try {
+        const ws = await window.ensemble.createWorkspace({ name, parentFolder: parent, tier, voices });
+        if (!ws) { btn.disabled = false; btn.textContent = "Create workspace"; return; }
+        if (ws.error) { toast(ws.error); btn.disabled = false; btn.textContent = "Create workspace"; return; }
+        closeCreateModal();
+        applyWorkspace(ws);
+        hideWelcome();
+      } catch (e) {
+        toast("Create failed: " + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = "Create workspace";
+      }
+    };
   }
 
   // ── Tree rendering ────────────────────────────────────────────────
@@ -1084,6 +1275,14 @@
 
     // Replace mock pricing.md panes with real workspace shell
     resetPanesForWorkspace();
+
+    // Doctrine indicator in mission row
+    if (ws.hasDoctrine) {
+      const m = document.getElementById("rail-mission");
+      const tier = ws.manifest?.tier ?? 1;
+      const tierLabel = tier === 0 ? "light" : tier === 2 ? "tier 2" : "tier 1";
+      m.innerHTML = (m.innerHTML || "") + `<div style="margin-top:8px;font-size:10.5px;color:var(--cp-success);"><strong>📚 clawpilot/</strong> loaded · ${tierLabel} · auto-injected to all voices</div>`;
+    }
 
     toast(`Loaded workspace: ${ws.slug}`);
   }
@@ -1416,6 +1615,7 @@
         if (!document.querySelector(`.voice-tab.active`)?.dataset.voice === v) setTabPing(v, 1);
         const r = await window.ensemble.clawpilot.start({
           voice: v, prompt: text, resumeSessionId: clawState.sessions[v] || undefined,
+          planMode: !!window.__planMode,
         });
         if (!r.ok) {
           agentEl.querySelector(".agent-body").innerHTML = `<span style="color:var(--cp-danger)">${escapeHtml(r.error)}</span>`;
@@ -1632,6 +1832,7 @@
       voice: voiceKey,
       prompt: text,
       resumeSessionId: clawState.sessions[voiceKey] || undefined,
+      planMode: !!window.__planMode,
     });
     if (!result.ok) {
       const body = agentEl.querySelector(".agent-body");
@@ -1706,6 +1907,20 @@
     // Welcome screen + recents wiring (Electron only)
     document.getElementById("welcomeOpenBtn").onclick = pickWorkspace;
     document.getElementById("welcomeCreateBtn").onclick = createWorkspace;
+    // Create-workspace modal
+    wireCreateModal();
+    // Plan/Act mode toggle
+    window.__planMode = false;
+    const planBtn = document.getElementById("planModeBtn");
+    if (planBtn) {
+      planBtn.onclick = () => {
+        window.__planMode = !window.__planMode;
+        planBtn.classList.toggle("plan-on", window.__planMode);
+        planBtn.textContent = window.__planMode ? "🧭 Mode: Plan" : "🧭 Mode: Act";
+        document.body.setAttribute("data-plan-mode", window.__planMode ? "1" : "0");
+        toast(window.__planMode ? "Plan mode on — voices will propose before acting" : "Act mode — voices act directly");
+      };
+    }
     // On startup, show welcome (no workspace loaded yet)
     showWelcome();
   } else {
