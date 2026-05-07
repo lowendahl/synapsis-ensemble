@@ -732,7 +732,6 @@
   </div>
   <div class="top-actions">
     <span id="clawStatus" title="Clawpilot host status" style="font-size:11px;color:var(--cp-text-muted);padding:0 8px;border-right:1px solid var(--cp-border);">⚪ checking…</span>
-    <button class="icon-btn" id="planModeBtn" title="Plan mode = voices propose before acting; no destructive tools">🧭 Mode: Act</button>
     <button class="icon-btn" id="safeModeBtn" title="Toggle safe-mode">🛡 Safe-mode: off</button>
     <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
     <button class="icon-btn" onclick="document.getElementById('helpTip').style.display='block'">?</button>
@@ -1615,7 +1614,7 @@
         if (!document.querySelector(`.voice-tab.active`)?.dataset.voice === v) setTabPing(v, 1);
         const r = await window.ensemble.clawpilot.start({
           voice: v, prompt: text, resumeSessionId: clawState.sessions[v] || undefined,
-          planMode: !!window.__planMode,
+      planMode: false,
         });
         if (!r.ok) {
           agentEl.querySelector(".agent-body").innerHTML = `<span style="color:var(--cp-danger)">${escapeHtml(r.error)}</span>`;
@@ -1832,7 +1831,7 @@
       voice: voiceKey,
       prompt: text,
       resumeSessionId: clawState.sessions[voiceKey] || undefined,
-      planMode: !!window.__planMode,
+      planMode: false,
     });
     if (!result.ok) {
       const body = agentEl.querySelector(".agent-body");
@@ -1909,18 +1908,6 @@
     document.getElementById("welcomeCreateBtn").onclick = createWorkspace;
     // Create-workspace modal
     wireCreateModal();
-    // Plan/Act mode toggle
-    window.__planMode = false;
-    const planBtn = document.getElementById("planModeBtn");
-    if (planBtn) {
-      planBtn.onclick = () => {
-        window.__planMode = !window.__planMode;
-        planBtn.classList.toggle("plan-on", window.__planMode);
-        planBtn.textContent = window.__planMode ? "🧭 Mode: Plan" : "🧭 Mode: Act";
-        document.body.setAttribute("data-plan-mode", window.__planMode ? "1" : "0");
-        toast(window.__planMode ? "Plan mode on — voices will propose before acting" : "Act mode — voices act directly");
-      };
-    }
     // On startup, show welcome (no workspace loaded yet)
     showWelcome();
   } else {
