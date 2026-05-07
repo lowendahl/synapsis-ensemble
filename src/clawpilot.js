@@ -28,7 +28,7 @@ function buildArgs(opts) {
   const fullPrompt = opts.systemPrompt && !opts.resumeSessionId
     ? `<system_instructions>\n${opts.systemPrompt}\n</system_instructions>\n\n${opts.prompt}`
     : opts.prompt;
-  const args = ["-p", fullPrompt, "--output-format", "stream-json"];
+  const args = ["-p", fullPrompt, "--output-format", "json"];
   if (opts.allowList && opts.allowList.length) {
     for (const t of opts.allowList) args.push("--allow-tool", t);
   } else {
