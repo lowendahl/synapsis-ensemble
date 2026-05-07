@@ -200,6 +200,9 @@
   .base-truth-children { margin-top: 6px; padding-left: 4px; border-left: 1px dashed var(--cp-border); display: none; }
   .base-truth-children.open { display: block; }
 
+  /* Hide the stage when welcome is showing (no workspace loaded) */
+  body[data-mode="welcome"] .stage { display: none; }
+
   /* Welcome (empty workspace) overlay */
   .welcome {
     position: absolute; inset: 44px 0 56px 0; /* under topbar, above bottom bar */
@@ -631,7 +634,7 @@
     </div>
   </div>
   <button class="ws-switch" id="wsSwitch" onclick="onWsSwitchClick()">
-    workspace: <strong style="color:var(--cp-accent)" id="wsName">pricing-redesign</strong> ▾
+    workspace: <strong style="color:var(--cp-accent)" id="wsName">—</strong> ▾
   </button>
   <div class="layout-tabs" id="layoutTabs">
     <button data-layout="solo">Solo</button>
@@ -916,10 +919,13 @@
   // ── Welcome screen ────────────────────────────────────────────────
   async function showWelcome() {
     if (!isElectron) return;
+    document.body.setAttribute("data-mode", "welcome");
     document.getElementById("welcomeScreen").classList.add("show");
+    document.getElementById("wsName").textContent = "—";
     await refreshRecents();
   }
   function hideWelcome() {
+    document.body.removeAttribute("data-mode");
     document.getElementById("welcomeScreen").classList.remove("show");
   }
   async function refreshRecents() {
@@ -1026,6 +1032,28 @@
     return wrap;
   }
 
+  function resetPanesForWorkspace() {
+    // Clear mock pricing.md content from the doc pane
+    const docHeader = document.querySelector(".pane.doc .pane-title");
+    const docTag = document.querySelector(".pane.doc .pane-tag");
+    const docContent = document.querySelector(".pane.doc .doc-content");
+    if (docHeader) docHeader.innerHTML = "📄 No file selected";
+    if (docTag) docTag.textContent = "workspace loaded";
+    if (docContent) {
+      docContent.innerHTML = `
+        <div style="color:var(--cp-text-muted); font-size:13px; line-height:1.6; padding:12px 0;">
+          Pick a file from the <strong>Files</strong> tree on the left to open it here.<br><br>
+          Or use the voice tabs on the right to ask the agents to read, summarize, or edit anything in this workspace.
+        </div>`;
+    }
+    // Clear mock voice-body messages
+    document.querySelectorAll(".voice-body").forEach((b) => {
+      const v = b.dataset.voice;
+      const labels = { brand: "brand-voice", ux: "ux-critic", ds: "data-scientist" };
+      b.innerHTML = `<div class="turn agent"><div class="who">${labels[v] || v}</div><div style="color:var(--cp-text-muted);">Workspace loaded. Ask me anything about the files in this folder.</div></div>`;
+    });
+  }
+
   function applyWorkspace(ws) {
     currentWs = ws;
     document.getElementById("wsName").textContent = ws.slug;
@@ -1053,6 +1081,9 @@
 
     // Base truths
     renderBaseTruths(ws.baseTruths || []);
+
+    // Replace mock pricing.md panes with real workspace shell
+    resetPanesForWorkspace();
 
     toast(`Loaded workspace: ${ws.slug}`);
   }
