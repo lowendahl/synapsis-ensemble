@@ -11,6 +11,8 @@ voices:
   - ux
   - ds
   - dev
+  - pm
+  - uxd
 base_truths:
   - base-truths/symbiont-brand.md
   - clawpilot/context.md

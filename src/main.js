@@ -486,6 +486,35 @@ ipcMain.handle("workspace:reload", async () => {
   return await loadWorkspace(currentWorkspace.path);
 });
 
+// Persist per-voice session state (resumeSessionId + truncated transcript) into
+// clawpilot/.session.json so reopening the workspace restores all voice
+// conversations. Throttle is up to the renderer (it calls this on each turn).
+ipcMain.handle("session:save", async (_e, payload) => {
+  if (!currentWorkspace) return { ok: false, error: "no workspace" };
+  const ctxDir = path.join(currentWorkspace.path, "clawpilot");
+  try {
+    await fs.mkdir(ctxDir, { recursive: true });
+    const data = {
+      voices: payload?.voices || {},
+      lastUpdated: new Date().toISOString(),
+    };
+    await fs.writeFile(path.join(ctxDir, ".session.json"), JSON.stringify(data, null, 2), "utf8");
+    if (currentWorkspace) currentWorkspace.sessionState = data;
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+});
+
+ipcMain.handle("session:clear", async () => {
+  if (!currentWorkspace) return { ok: false };
+  try {
+    await fs.unlink(path.join(currentWorkspace.path, "clawpilot", ".session.json"));
+  } catch { /* ignore */ }
+  if (currentWorkspace) currentWorkspace.sessionState = { voices: {}, lastUpdated: null };
+  return { ok: true };
+});
+
 const IGNORED_DIRS = new Set(["node_modules", ".git", "dist", "out", ".venv", "__pycache__", ".next", "build", ".turbo", ".cache", "coverage"]);
 const MAX_TREE_DEPTH = 6;
 const MAX_TREE_NODES = 4000;
@@ -594,6 +623,14 @@ async function loadWorkspace(folder) {
     precedence: await readIfExists("PRECEDENCE.md"),
     outOfScope: await readIfExists("OUT-OF-SCOPE.md"),
   };
+  // Load persisted council state (per-workspace) — sessionIds + transcripts.
+  // Lives in clawpilot/.session.json so it travels with the workspace folder.
+  let sessionState = { voices: {}, lastUpdated: null };
+  try {
+    const txt = await fs.readFile(path.join(ctxDir, ".session.json"), "utf8");
+    const parsed = JSON.parse(txt);
+    if (parsed && typeof parsed === "object") sessionState = parsed;
+  } catch { /* fresh workspace */ }
   currentWorkspace = {
     path: folder,
     slug,
@@ -602,6 +639,7 @@ async function loadWorkspace(folder) {
     baseTruths,
     doctrine,
     hasDoctrine: !!(doctrine.context || doctrine.conventions),
+    sessionState,
   };
   await pushRecent(folder, slug);
   return currentWorkspace;

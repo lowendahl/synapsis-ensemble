@@ -396,6 +396,8 @@
     padding: 6px 8px 0;
     background: var(--cp-bg-elevated);
     border-bottom: 1px solid var(--cp-border);
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
   .voice-tab {
     background: transparent; border: 1px solid transparent;
@@ -403,9 +405,11 @@
     color: var(--cp-text-muted); padding: 6px 12px;
     border-radius: 0.625rem 0.625rem 0 0; cursor: pointer; font: inherit;
     display: flex; align-items: center; gap: 6px;
-    font-size: 13px;
+    font-size: 12.5px;
     position: relative;
     top: 1px;
+    white-space: nowrap;
+    flex: 0 0 auto;
   }
   .voice-tab:hover { color: var(--cp-text); background: var(--cp-surface-soft); }
   .voice-tab.active {
@@ -462,7 +466,8 @@
   .voice-dot.ux { background: #2f80a4; }
   .voice-dot.ds { background: #6b8e3d; }
   .voice-dot.dev { background: #c084fc; }
-  .voice-dot.pm { background: #8b5cf6; }
+  .voice-dot.pm { background: #f59e0b; }
+  .voice-dot.uxd { background: #ec4899; }
   .voice-dot.synth { background: var(--cp-accent); }
 
   .pane-tag {
@@ -629,6 +634,8 @@
   .target-chip.ux { background: #2f80a4; }
   .target-chip.ds { background: #6b8e3d; }
   .target-chip.dev { background: #c084fc; }
+  .target-chip.pm { background: #f59e0b; }
+  .target-chip.uxd { background: #ec4899; }
   .council-send {
     background: var(--cp-accent); color: var(--cp-accent-fg);
     border: none; border-radius: 0.625rem; padding: 8px 16px;
@@ -810,6 +817,8 @@
           <label class="voice-chip"><input type="checkbox" value="ux" checked><span class="voice-dot ux"></span>ux-critic</label>
           <label class="voice-chip"><input type="checkbox" value="ds" checked><span class="voice-dot ds"></span>data-scientist</label>
           <label class="voice-chip"><input type="checkbox" value="dev" checked><span class="voice-dot dev"></span>developer</label>
+          <label class="voice-chip"><input type="checkbox" value="pm" checked><span class="voice-dot pm"></span>product-manager</label>
+          <label class="voice-chip"><input type="checkbox" value="uxd" checked><span class="voice-dot uxd"></span>ux-designer</label>
         </div>
         <div class="form-hint">Per-workspace voice definitions land in V0.3 — for now this seeds <code>workspace.yaml</code>.</div>
       </div>
@@ -846,6 +855,8 @@
     <div class="rail-item"><span class="voice-dot ux"></span>ux-critic</div>
     <div class="rail-item"><span class="voice-dot ds"></span>data-scientist</div>
     <div class="rail-item"><span class="voice-dot dev"></span>developer</div>
+    <div class="rail-item"><span class="voice-dot pm"></span>product-manager</div>
+    <div class="rail-item"><span class="voice-dot uxd"></span>ux-designer</div>
     <div class="rail-item" style="color:var(--cp-text-muted);font-size:11px;">+ add voice (V0.3)</div>
   </aside>
 
@@ -919,6 +930,14 @@
           <span class="voice-dot dev"></span>developer
           <span id="dev-pings"></span>
         </button>
+        <button class="voice-tab" data-voice="pm">
+          <span class="voice-dot pm"></span>product-mgr
+          <span id="pm-pings"></span>
+        </button>
+        <button class="voice-tab" data-voice="uxd">
+          <span class="voice-dot uxd"></span>ux-designer
+          <span id="uxd-pings"></span>
+        </button>
         <div style="margin-left:auto;display:flex;align-items:center;padding:0 8px;color:var(--cp-text-muted);font-size:11px;">
           <span style="font-family:Consolas,monospace;">⌘1 ⌘2 ⌘3</span>
         </div>
@@ -949,6 +968,18 @@
               <div>Developer voice on. I write code as Patrik (2026 stack — Python / Node / TS). Architecture before syntax, convention over configuration. Mention me with <span class="mention">@dev</span>.</div>
             </div>
           </div>
+          <div class="voice-body" id="pm-body" data-voice="pm">
+            <div class="turn agent">
+              <div class="who">product-manager</div>
+              <div>Product manager on. I scope, prioritise, write acceptance criteria, and call out the customer outcome behind a feature. Mention me with <span class="mention">@pm</span>.</div>
+            </div>
+          </div>
+          <div class="voice-body" id="uxd-body" data-voice="uxd">
+            <div class="turn agent">
+              <div class="who">ux-designer</div>
+              <div>UX designer on. I draft layouts, IA, components, and interaction patterns — the make side of UX, complementing ux-critic's review. Mention me with <span class="mention">@uxd</span>.</div>
+            </div>
+          </div>
         </div>
         <div class="pane-input voice-input-wrap active" data-voice="brand">
           <input id="brand-input" placeholder="ask brand-voice…" onkeydown="if(event.key==='Enter')sendToVoice('brand')" />
@@ -965,6 +996,14 @@
         <div class="pane-input voice-input-wrap" data-voice="dev">
           <input id="dev-input" placeholder="ask developer…" onkeydown="if(event.key==='Enter')sendToVoice('dev')" />
           <button class="send-btn" onclick="sendToVoice('dev')">Send</button>
+        </div>
+        <div class="pane-input voice-input-wrap" data-voice="pm">
+          <input id="pm-input" placeholder="ask product-manager…" onkeydown="if(event.key==='Enter')sendToVoice('pm')" />
+          <button class="send-btn" onclick="sendToVoice('pm')">Send</button>
+        </div>
+        <div class="pane-input voice-input-wrap" data-voice="uxd">
+          <input id="uxd-input" placeholder="ask ux-designer…" onkeydown="if(event.key==='Enter')sendToVoice('uxd')" />
+          <button class="send-btn" onclick="sendToVoice('uxd')">Send</button>
         </div>
       </div>
     </div>
@@ -1017,6 +1056,25 @@
       </div>
     </div>
 
+    <div class="instrument-card">
+      <div class="instrument-name"><span class="voice-dot pm" style="display:inline-block;vertical-align:middle"></span> Product Manager</div>
+      <div class="instrument-list">
+        <span class="chip allowed">filesystem</span>
+        <span class="chip allowed">/docx</span>
+        <span class="chip allowed">/xlsx</span>
+        <span class="chip allowed">m365_*</span>
+      </div>
+    </div>
+
+    <div class="instrument-card">
+      <div class="instrument-name"><span class="voice-dot uxd" style="display:inline-block;vertical-align:middle"></span> UX Designer</div>
+      <div class="instrument-list">
+        <span class="chip allowed">filesystem</span>
+        <span class="chip allowed">/excalidraw</span>
+        <span class="chip allowed">web-fetch</span>
+      </div>
+    </div>
+
     <h4 style="text-transform:uppercase;letter-spacing:1.5px;font-size:10px;color:var(--cp-text-muted);margin:14px 4px 8px;">Pipelines</h4>
     <div class="instrument-card" style="cursor:pointer" onclick="setLayout('pipeline')">
       <div class="instrument-name">/run pricing-review</div>
@@ -1034,6 +1092,8 @@
     <span class="target-chip ux active" data-voice="ux" title="ux-critic"></span>
     <span class="target-chip ds" data-voice="ds" title="data-scientist"></span>
     <span class="target-chip dev active" data-voice="dev" title="developer"></span>
+    <span class="target-chip pm active" data-voice="pm" title="product-manager"></span>
+    <span class="target-chip uxd active" data-voice="uxd" title="ux-designer"></span>
   </div>
   <input id="councilInput" class="council-input" placeholder='Broadcast to selected voices… (try: "review the starter tier for tone and conversion risk")' />
   <button class="council-send" onclick="sendCouncil()">Send to all ▶</button>
@@ -1056,7 +1116,7 @@
   const state = {
     safeMode: false,
     layout: "council",
-    councilTargets: { brand: true, ux: true, ds: false, dev: true },
+    councilTargets: { brand: true, ux: true, ds: false, dev: true, pm: true, uxd: true },
   };
 
   // ───── Electron integration ─────
@@ -1311,6 +1371,15 @@
     }
 
     toast(`Loaded workspace: ${ws.slug}`);
+
+    // Restore prior council state (sessionIds + transcripts) from clawpilot/.session.json.
+    // Done after resetPanesForWorkspace so the voice-bodies exist to replay into.
+    if (ws.sessionState) {
+      // Reset in-memory state to avoid stale data from a prior workspace
+      for (const k of Object.keys(clawState.sessions)) clawState.sessions[k] = null;
+      for (const k of Object.keys(clawState.transcripts)) clawState.transcripts[k] = [];
+      restoreSessions(ws.sessionState);
+    }
   }
 
   function renderBaseTruths(items) {
@@ -1781,11 +1850,75 @@
   // sessionId is per-voice so each voice keeps its own multi-turn thread.
   const clawState = {
     available: false,
-    sessions: { brand: null, ux: null, ds: null }, // resume sessionId per voice
+    sessions: { brand: null, ux: null, ds: null, dev: null, pm: null, uxd: null }, // resume sessionId per voice
+    transcripts: { brand: [], ux: [], ds: [], dev: [], pm: [], uxd: [] }, // [{role, text, ts}]
     runs: {}, // runId → { voice, agentEl, accumulated }
   };
 
-  const VOICE_LABELS = { brand: "brand-voice", ux: "ux-critic", ds: "data-scientist" };
+  const VOICE_LABELS = {
+    brand: "brand-voice",
+    ux: "ux-critic",
+    ds: "data-scientist",
+    dev: "developer",
+    pm: "product-manager",
+    uxd: "ux-designer",
+  };
+
+  // ── Persistence: clawpilot/.session.json per workspace ──
+  let _persistTimer = null;
+  function persistSessions() {
+    if (!isElectron || !window.ensemble?.saveSession) return;
+    clearTimeout(_persistTimer);
+    _persistTimer = setTimeout(() => {
+      const voices = {};
+      for (const v of Object.keys(clawState.sessions)) {
+        voices[v] = {
+          sessionId: clawState.sessions[v] || null,
+          turns: (clawState.transcripts[v] || []).slice(-50), // cap
+        };
+      }
+      window.ensemble.saveSession({ voices }).catch(() => {});
+    }, 500);
+  }
+
+  function recordTurn(voice, role, text) {
+    if (!clawState.transcripts[voice]) clawState.transcripts[voice] = [];
+    clawState.transcripts[voice].push({ role, text, ts: Date.now() });
+    persistSessions();
+  }
+
+  function restoreSessions(sessionState) {
+    if (!sessionState || !sessionState.voices) return;
+    for (const [voice, data] of Object.entries(sessionState.voices)) {
+      if (!clawState.transcripts[voice] !== undefined) {
+        // ensure key exists
+        if (!(voice in clawState.transcripts)) clawState.transcripts[voice] = [];
+      }
+      if (data.sessionId) clawState.sessions[voice] = data.sessionId;
+      if (Array.isArray(data.turns)) {
+        clawState.transcripts[voice] = data.turns;
+        // Replay into DOM if pane exists
+        const body = document.getElementById(voice + "-body");
+        if (body) {
+          // Keep original greeting; append a divider then replay
+          if (data.turns.length) {
+            body.insertAdjacentHTML("beforeend",
+              `<div style="font-size:11px;color:var(--cp-text-muted);margin:8px 0;border-top:1px dashed var(--cp-border);padding-top:8px;">↻ restored ${data.turns.length} turn${data.turns.length === 1 ? "" : "s"} from previous session</div>`);
+            for (const t of data.turns) {
+              if (t.role === "user") {
+                body.insertAdjacentHTML("beforeend",
+                  `<div class="turn user"><div class="who">you</div><div>${escapeHtml(t.text)}</div></div>`);
+              } else {
+                body.insertAdjacentHTML("beforeend",
+                  `<div class="turn agent"><div class="who">${VOICE_LABELS[voice] || voice}</div><div class="agent-body">${inlineMd(t.text)}</div></div>`);
+              }
+            }
+            body.scrollTop = body.scrollHeight;
+          }
+        }
+      }
+    }
+  }
 
   async function checkClawpilot() {
     if (!isElectron) {
@@ -1843,6 +1976,7 @@
 
     const agentEl = appendUserTurn(voiceKey, text);
     if (!agentEl) return;
+    recordTurn(voiceKey, "user", text);
 
     // Mock fallback when running in browser or Clawpilot unavailable
     if (!isElectron || !clawState.available) {
@@ -1914,7 +2048,11 @@
         run.agentEl.removeAttribute("data-pending");
         if (!run.accumulated) {
           body.innerHTML = `<span style="color:var(--cp-text-muted)">(no output · exit ${ev.payload.exitCode}${ev.payload.cancelled ? " · cancelled" : ""})</span>`;
+        } else {
+          recordTurn(run.voice, "agent", run.accumulated);
         }
+        // also persist sessionId snapshot on close
+        persistSessions();
         // ping the tab if not active
         const activeTab = document.querySelector(".voice-tab.active");
         if (!activeTab || activeTab.dataset.voice !== run.voice) {

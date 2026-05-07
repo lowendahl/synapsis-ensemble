@@ -3,3 +3,6 @@ dist/
 .DS_Store
 *.log
 
+# Per-workspace council state (sessionIds + transcripts). Machine state, not doctrine.
+clawpilot/.session.json
+

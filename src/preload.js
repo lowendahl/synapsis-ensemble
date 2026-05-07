@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("ensemble", {
   recentWorkspaces: () => ipcRenderer.invoke("workspace:recent"),
   removeRecent: (folder) => ipcRenderer.invoke("workspace:remove-recent", folder),
   reloadWorkspace: () => ipcRenderer.invoke("workspace:reload"),
+  saveSession: (payload) => ipcRenderer.invoke("session:save", payload),
+  clearSession: () => ipcRenderer.invoke("session:clear"),
   readText: (filePath) => ipcRenderer.invoke("file:read-text", filePath),
   readImage: (filePath) => ipcRenderer.invoke("file:read-image-data-url", filePath),
   baseTruthTree: (root) => ipcRenderer.invoke("base-truth:tree", root),
