@@ -724,11 +724,8 @@
   <button class="ws-switch" id="wsSwitch" onclick="onWsSwitchClick()">
     workspace: <strong style="color:var(--cp-accent)" id="wsName">—</strong> ▾
   </button>
-  <div class="layout-tabs" id="layoutTabs">
-    <button data-layout="solo">Solo</button>
+  <div class="layout-tabs" id="layoutTabs" style="display:none;">
     <button data-layout="council" class="active">Council</button>
-    <button data-layout="pipeline">Pipeline</button>
-    <button data-layout="atelier">Atelier</button>
   </div>
   <div class="top-actions">
     <span id="clawStatus" title="Clawpilot host status" style="font-size:11px;color:var(--cp-text-muted);padding:0 8px;border-right:1px solid var(--cp-border);">⚪ checking…</span>
