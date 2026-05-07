@@ -1,0 +1,20 @@
+name: Synapsis · Ensemble
+slug: synapsis-ensemble
+mission: |
+  Build the multi-voice agent workspace. Dogfood Ensemble on itself: every
+  voice should answer Ensemble questions using clawpilot/ doctrine + the
+  base-truths brand reference, and every change to Ensemble's UI/IPC should
+  be reviewable through the same Council that ships in Ensemble.
+tier: 1
+voices:
+  - brand
+  - ux
+  - ds
+base_truths:
+  - base-truths/symbiont-brand.md
+  - clawpilot/context.md
+  - clawpilot/conventions.md
+  - clawpilot/PRECEDENCE.md
+references:
+  - C:\Users\plwendahl\repos\CSU-Compass
+  - C:\repos\md-viewer

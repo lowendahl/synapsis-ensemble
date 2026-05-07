@@ -1,0 +1,42 @@
+project: synapsis-ensemble
+display_name: "Synapsis · Ensemble"
+tier: 1
+created: 2026-05-07
+entry_points:
+  context: clawpilot/context.md
+  conventions: clawpilot/conventions.md
+  memory: clawpilot/memory.md
+  glossary: clawpilot/GLOSSARY.md
+  routing: clawpilot/ROUTING.md
+  precedence: clawpilot/PRECEDENCE.md
+  out_of_scope: clawpilot/OUT-OF-SCOPE.md
+  changelog: clawpilot/CHANGELOG.md
+
+repos:
+  main: C:\repos\synapsis-ensemble
+  references:
+    - path: C:\Users\plwendahl\repos\CSU-Compass
+      role: bridge-reference
+      reason: clawpilotBridge.ts is the source pattern for src/clawpilot.js
+    - path: C:\repos\md-viewer
+      role: editor-reference
+      reason: Chorus MD editor + MRSF sidecar — candidate for V0.3 absorption
+    - path: ~\.copilot\m-skills\project-add
+      role: doctrine-source
+      reason: tier 0/1/2 CIM scaffolder reads from this skill
+
+base_truths:
+  - base-truths/symbiont-brand.md
+
+concepts:
+  - voice
+  - instrument
+  - workspace
+  - council
+  - base-truth
+  - doctrine
+  - cim
+  - bridge
+  - recents
+  - plan-mode
+  - task
