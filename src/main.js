@@ -723,6 +723,20 @@ ipcMain.handle("clawpilot:start", async (e, args) => {
       lines.push("Sources of truth (read with the filesystem MCP when relevant):");
       for (const b of bt) lines.push(`  • ${b.label} → ${b.path}${b.external ? " (external)" : ""}`);
     }
+
+    // Linked code repos — paths granted via --add-dir so the voice can read/edit them.
+    const linked = Array.isArray(currentWorkspace.manifest?.linked_repos)
+      ? currentWorkspace.manifest.linked_repos.filter(Boolean)
+      : [];
+    if (linked.length) {
+      lines.push("");
+      lines.push("Linked repositories (you have read+write access via filesystem/shell):");
+      for (const r of linked) {
+        if (typeof r === "string") lines.push(`  • ${r}`);
+        else if (r && r.path) lines.push(`  • ${r.label || r.role || "repo"} → ${r.path}${r.notes ? "  — " + r.notes : ""}`);
+      }
+      lines.push("When the user asks you to build a feature, edit the linked repo(s) directly. Cite full paths.");
+    }
     if (d.glossary) lines.push(`\nGlossary lives at clawpilot/GLOSSARY.md — read it before using domain terms.`);
     if (d.routing)  lines.push(`Routing map lives at clawpilot/ROUTING.md.`);
     if (d.outOfScope) lines.push(`Out-of-scope list lives at clawpilot/OUT-OF-SCOPE.md.`);
@@ -744,6 +758,12 @@ ipcMain.handle("clawpilot:start", async (e, args) => {
     ? `${voice.systemPrompt}\n\n--- workspace context ---\n${preamble}`
     : voice.systemPrompt) + planPrefix;
 
+  const linkedPaths = Array.isArray(currentWorkspace?.manifest?.linked_repos)
+    ? currentWorkspace.manifest.linked_repos
+        .map((r) => (typeof r === "string" ? r : r?.path))
+        .filter((p) => p && typeof p === "string")
+    : [];
+
   return clawpilot.startRun(e.sender, {
     voice: voice.id,
     prompt: String(prompt),
@@ -752,6 +772,7 @@ ipcMain.handle("clawpilot:start", async (e, args) => {
     resumeSessionId: resumeSessionId || undefined,
     model: model || undefined,
     cwd: currentWorkspace ? currentWorkspace.path : undefined,
+    extraDirs: linkedPaths,
   });
 });
 

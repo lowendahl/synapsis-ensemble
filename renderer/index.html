@@ -165,7 +165,11 @@
     padding: 6px 8px; border-radius: 8px; cursor: pointer;
     color: var(--cp-text); font-size: 13px;
     display: flex; align-items: center; gap: 8px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
+  .rail-item code { white-space: normal; word-break: break-all; }
   .rail-item:hover { background: var(--cp-surface-soft); }
   .rail-item.active { background: var(--cp-accent-soft); color: var(--cp-accent); }
   .rail-item .glyph { width: 16px; opacity: 0.7; flex-shrink: 0; }
@@ -378,16 +382,38 @@
 
   /* Main panes area */
   .panes {
-    display: grid;
-    grid-template-columns: 1.3fr 1fr;
-    gap: 10px;
+    display: flex;
     padding: 10px;
+    gap: 0;
     overflow: hidden;
     background: var(--cp-bg);
   }
-  .panes.solo { grid-template-columns: 1fr 0.7fr; }
-  .panes.pipeline { grid-template-columns: 1fr 1fr; }
-  .panes.atelier { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  .panes > .pane:first-child { flex: var(--pane-left-flex, 1.3); min-width: 180px; }
+  .panes > .pane:last-child  { flex: var(--pane-right-flex, 1);   min-width: 180px; }
+
+  /* Draggable splitter between doc pane and voice pane */
+  .pane-splitter {
+    width: 10px;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+  }
+  .pane-splitter::after {
+    content: "";
+    width: 4px;
+    height: 36px;
+    border-radius: 2px;
+    background: var(--cp-border);
+    transition: background 0.15s;
+  }
+  .pane-splitter:hover::after,
+  .pane-splitter.dragging::after {
+    background: var(--cp-border-strong);
+  }
 
   /* Voice tab strip */
   .voice-tabs-wrap {
@@ -881,15 +907,6 @@
     <div id="baseTruths">
       <div class="rail-item" style="color:var(--cp-text-muted);font-size:11px;line-height:1.45;">Add <code style="background:var(--cp-surface-soft);padding:1px 4px;border-radius:3px;font-size:10px;">base_truths:</code> to <code style="background:var(--cp-surface-soft);padding:1px 4px;border-radius:3px;font-size:10px;">workspace.yaml</code> to anchor voices on doctrine repos and context-engineering folders.</div>
     </div>
-
-    <h4 style="margin-top:18px;">Active Voices</h4>
-    <div class="rail-item"><span class="voice-dot brand"></span>brand-voice</div>
-    <div class="rail-item"><span class="voice-dot ux"></span>ux-critic</div>
-    <div class="rail-item"><span class="voice-dot ds"></span>data-scientist</div>
-    <div class="rail-item"><span class="voice-dot dev"></span>developer</div>
-    <div class="rail-item"><span class="voice-dot pm"></span>product-manager</div>
-    <div class="rail-item"><span class="voice-dot uxd"></span>ux-designer</div>
-    <div class="rail-item" style="color:var(--cp-text-muted);font-size:11px;">+ add voice (V0.3)</div>
   </aside>
 
   <section class="panes" id="panes">
@@ -942,6 +959,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Draggable splitter -->
+    <div class="pane-splitter" id="paneSplitter"></div>
 
     <!-- TABBED VOICE PANE -->
     <div class="pane">
@@ -2060,6 +2080,11 @@
             body.innerHTML = inlineMd(run.accumulated);
           }
         }
+        // batch-mode `--output-format json` emits one final {type:"result", result:"..."}
+        if (t === "result" && typeof p.result === "string" && p.result.length > run.accumulated.length) {
+          run.accumulated = p.result;
+          body.innerHTML = inlineMd(run.accumulated);
+        }
         // result event sometimes carries session_id too
         if (t === "result" && p.session_id) {
           clawState.sessions[run.voice] = p.session_id;
@@ -2132,6 +2157,47 @@
     setTimeout(update, 200);
     // also re-check when tabs change (active tab might be off-screen)
     strip.addEventListener("click", () => setTimeout(update, 50));
+  })();
+
+  // ───── Pane splitter drag logic ─────
+  (() => {
+    const splitter = document.getElementById("paneSplitter");
+    const panes = document.getElementById("panes");
+    if (!splitter || !panes) return;
+
+    let dragging = false;
+
+    splitter.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      dragging = true;
+      splitter.classList.add("dragging");
+      splitter.setPointerCapture(e.pointerId);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    });
+
+    splitter.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const rect = panes.getBoundingClientRect();
+      const offset = e.clientX - rect.left;
+      const total = rect.width;
+      const splitterW = splitter.offsetWidth;
+      const ratio = Math.max(0.15, Math.min(0.85, offset / total));
+      const leftFlex = ratio;
+      const rightFlex = 1 - ratio - (splitterW / total);
+      panes.style.setProperty("--pane-left-flex", leftFlex.toFixed(4));
+      panes.style.setProperty("--pane-right-flex", rightFlex.toFixed(4));
+    });
+
+    const stop = () => {
+      if (!dragging) return;
+      dragging = false;
+      splitter.classList.remove("dragging");
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    splitter.addEventListener("pointerup", stop);
+    splitter.addEventListener("pointercancel", stop);
   })();
 </script>
 

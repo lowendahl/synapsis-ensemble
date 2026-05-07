@@ -28,7 +28,7 @@ function buildArgs(opts) {
   const fullPrompt = opts.systemPrompt && !opts.resumeSessionId
     ? `<system_instructions>\n${opts.systemPrompt}\n</system_instructions>\n\n${opts.prompt}`
     : opts.prompt;
-  const args = ["-p", fullPrompt, "--output-format", "json"];
+  const args = ["-p", fullPrompt, "--output-format", "stream-json"];
   if (opts.allowList && opts.allowList.length) {
     for (const t of opts.allowList) args.push("--allow-tool", t);
   } else {
@@ -38,6 +38,11 @@ function buildArgs(opts) {
   if (opts.resumeSessionId) args.push(`--resume=${opts.resumeSessionId}`);
   if (opts.mcpConfigPath) args.push("--additional-mcp-config", `@${opts.mcpConfigPath}`);
   if (opts.cwd) args.push("--add-dir", opts.cwd);
+  if (Array.isArray(opts.extraDirs)) {
+    for (const d of opts.extraDirs) {
+      if (d && d !== opts.cwd) args.push("--add-dir", d);
+    }
+  }
   return args;
 }
 
