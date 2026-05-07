@@ -1,0 +1,46 @@
+{
+  "name": "synapsis-ensemble",
+  "version": "0.1.0",
+  "description": "Many voices. Many instruments. One workspace. (Symbiont · Ensemble)",
+  "main": "src/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node scripts/launch.js",
+    "dev": "node scripts/launch.js --enable-logging",
+    "dist": "node scripts/launch.js --build nsis",
+    "dist:portable": "node scripts/launch.js --build portable"
+  },
+  "author": "Patrik Lowendahl",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "marked": "^12.0.2"
+  },
+  "build": {
+    "appId": "io.symbiont.ensemble",
+    "productName": "Ensemble",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Ensemble"
+    }
+  }
+}

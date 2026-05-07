@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Ensemble — Mockup v0</title>
+<title>Ensemble v0.1</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script>
   (() => {
@@ -524,8 +524,8 @@
       <div style="font-size:14px;line-height:1;">Ensemble</div>
     </div>
   </div>
-  <button class="ws-switch" onclick="toast('Workspace switcher (mock)')">
-    workspace: <strong style="color:var(--cp-accent)">pricing-redesign</strong> ▾
+  <button class="ws-switch" id="wsSwitch" onclick="onWsSwitchClick()">
+    workspace: <strong style="color:var(--cp-accent)" id="wsName">pricing-redesign</strong> ▾
   </button>
   <div class="layout-tabs" id="layoutTabs">
     <button data-layout="solo">Solo</button>
@@ -559,13 +559,15 @@
     </div>
 
     <h4>Files</h4>
-    <div class="rail-item active"><span class="glyph">📄</span>pricing.md</div>
-    <div class="rail-item"><span class="glyph">📄</span>variants-brief.md</div>
-    <div class="rail-item"><span class="glyph">📄</span>handoff-notes.md</div>
-    <div class="rail-item"><span class="glyph">📊</span>conversion-history.csv</div>
-    <div class="rail-item"><span class="glyph">🖼</span>hero-mock.png</div>
-    <div class="rail-item"><span class="glyph">🖼</span>tier-comparison.png</div>
-    <div class="rail-item"><span class="glyph">🖼</span>old-pricing-screenshot.png</div>
+    <div id="fileList">
+      <div class="rail-item active"><span class="glyph">📄</span>pricing.md</div>
+      <div class="rail-item"><span class="glyph">📄</span>variants-brief.md</div>
+      <div class="rail-item"><span class="glyph">📄</span>handoff-notes.md</div>
+      <div class="rail-item"><span class="glyph">📊</span>conversion-history.csv</div>
+      <div class="rail-item"><span class="glyph">🖼</span>hero-mock.png</div>
+      <div class="rail-item"><span class="glyph">🖼</span>tier-comparison.png</div>
+      <div class="rail-item"><span class="glyph">🖼</span>old-pricing-screenshot.png</div>
+    </div>
 
     <h4>Base Truths</h4>
     <div class="rail-item" style="font-size:12px;color:var(--cp-text-muted);"><span class="glyph">📚</span>brand-doctrine</div>
@@ -761,6 +763,142 @@
     layout: "council",
     councilTargets: { brand: true, ux: true, ds: false },
   };
+
+  // ───── Electron integration (v0.1) ─────
+  const isElectron = typeof window.ensemble !== "undefined";
+  let currentWs = null;
+
+  function glyphFor(file) {
+    if (file.kind === "image") return "🖼";
+    if (file.name.toLowerCase().endsWith(".csv")) return "📊";
+    if (file.name.toLowerCase().endsWith(".yaml") || file.name.toLowerCase().endsWith(".yml")) return "🧾";
+    if (file.name.toLowerCase().endsWith(".json")) return "🧾";
+    return "📄";
+  }
+
+  function onWsSwitchClick() {
+    if (isElectron) pickWorkspace();
+    else toast("Workspace switcher (mock — Electron build only)");
+  }
+
+  async function pickWorkspace() {
+    try {
+      const ws = await window.ensemble.pickWorkspace();
+      if (!ws) return;
+      applyWorkspace(ws);
+    } catch (e) {
+      toast("Failed to open workspace: " + e.message);
+    }
+  }
+
+  function applyWorkspace(ws) {
+    currentWs = ws;
+    document.getElementById("wsName").textContent = ws.slug;
+    const list = document.getElementById("fileList");
+    list.innerHTML = "";
+    ws.files.forEach((f, idx) => {
+      const div = document.createElement("div");
+      div.className = "rail-item";
+      div.innerHTML = `<span class="glyph">${glyphFor(f)}</span>${f.name}`;
+      div.onclick = () => openFile(f, div);
+      list.appendChild(div);
+      if (idx === 0) {
+        div.classList.add("active");
+        openFile(f, div);
+      }
+    });
+    if (ws.files.length === 0) {
+      list.innerHTML = `<div class="rail-item" style="color:var(--cp-text-muted);font-size:12px;">(no files in this folder)</div>`;
+    }
+    toast(`Loaded workspace: ${ws.slug} (${ws.files.length} files)`);
+  }
+
+  // Minimal markdown → html (v0.1, no deps)
+  function renderMarkdown(md) {
+    // Escape
+    md = md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    // Code fences
+    md = md.replace(/```([\s\S]*?)```/g, (_, c) => `<pre style="background:var(--cp-bg);padding:10px;border-radius:8px;overflow-x:auto;font-size:12px;">${c}</pre>`);
+    // Inline code
+    md = md.replace(/`([^`\n]+)`/g, '<code style="background:var(--cp-bg);padding:1px 5px;border-radius:4px;font-size:90%;">$1</code>');
+    // Headers
+    md = md.replace(/^###### (.+)$/gm, "<h6>$1</h6>");
+    md = md.replace(/^##### (.+)$/gm, "<h5>$1</h5>");
+    md = md.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
+    md = md.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+    md = md.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+    md = md.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+    // Bold/italic
+    md = md.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    md = md.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    // Links
+    md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--cp-link);">$1</a>');
+    // Lists (basic)
+    md = md.replace(/^(?:- |\* )(.+)$/gm, "<li>$1</li>");
+    md = md.replace(/(<li>[\s\S]+?<\/li>)(?=\n\n|$)/g, "<ul>$1</ul>");
+    // Hr
+    md = md.replace(/^---+$/gm, "<hr style='border:none;border-top:1px solid var(--cp-border);margin:14px 0;'/>");
+    // Paragraphs (split on blank lines)
+    md = md.split(/\n\n+/).map(block => {
+      if (/^<(h\d|ul|pre|hr|blockquote)/.test(block.trim())) return block;
+      if (!block.trim()) return "";
+      return `<p>${block.replace(/\n/g, "<br/>")}</p>`;
+    }).join("\n");
+    return md;
+  }
+
+  async function openFile(file, el) {
+    document.querySelectorAll("#fileList .rail-item").forEach(i => i.classList.remove("active"));
+    if (el) el.classList.add("active");
+
+    const docPane = document.querySelector(".pane.doc .doc-content");
+    const docHeader = document.querySelector(".pane.doc .pane-title");
+    if (!docPane) return;
+    docHeader.innerHTML = `${glyphFor(file)} ${file.name}`;
+
+    if (file.kind === "image") {
+      try {
+        const dataUrl = await window.ensemble.readImage(file.path);
+        docPane.innerHTML = `<div style="text-align:center;padding:20px;"><img src="${dataUrl}" style="max-width:100%;max-height:60vh;border-radius:8px;border:1px solid var(--cp-border);" alt="${file.name}"/></div>`;
+      } catch (e) { docPane.innerHTML = `<p style="color:var(--cp-danger)">Failed to load image: ${e.message}</p>`; }
+      return;
+    }
+
+    if (file.kind === "text") {
+      try {
+        const text = await window.ensemble.readText(file.path);
+        if (file.name.toLowerCase().endsWith(".md") || file.name.toLowerCase().endsWith(".markdown")) {
+          docPane.innerHTML = renderMarkdown(text);
+        } else if (file.name.toLowerCase().endsWith(".csv")) {
+          // Simple CSV table render (first 50 rows)
+          const rows = text.split(/\r?\n/).slice(0, 50).map(r => r.split(","));
+          let html = `<h2>${file.name}</h2><table style="border-collapse:collapse;font-size:12px;">`;
+          rows.forEach((r, i) => {
+            const tag = i === 0 ? "th" : "td";
+            html += "<tr>" + r.map(c => `<${tag} style="border:1px solid var(--cp-border);padding:4px 8px;text-align:left;">${c}</${tag}>`).join("") + "</tr>";
+          });
+          html += "</table>";
+          docPane.innerHTML = html;
+        } else {
+          docPane.innerHTML = `<pre style="white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;">${text.replace(/</g,"&lt;")}</pre>`;
+        }
+      } catch (e) { docPane.innerHTML = `<p style="color:var(--cp-danger)">Failed to read: ${e.message}</p>`; }
+      return;
+    }
+
+    docPane.innerHTML = `<p style="color:var(--cp-text-muted);">${file.name} — preview not supported (v0.1)</p>`;
+  }
+
+  // Wire menu events from main process
+  if (isElectron) {
+    window.ensemble.onMenu((evt) => {
+      if (evt.type === "open-workspace") pickWorkspace();
+      else if (evt.type === "toggle-theme") {
+        const cur = document.documentElement.getAttribute("data-theme");
+        document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+      } else if (evt.type === "tab") activateVoiceTab(evt.voice);
+    });
+  }
 
   // ───── Voice tabs ─────
   function activateVoiceTab(voice) {
@@ -1066,8 +1204,8 @@
     }
   }
 
-  // Toggle help
-  setTimeout(() => { document.getElementById("helpTip").style.display = "block"; }, 600);
+  // Toggle help — only auto-show on web, not in Electron app
+  if (!isElectron) setTimeout(() => { document.getElementById("helpTip").style.display = "block"; }, 600);
 </script>
 
 </body>
