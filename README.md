@@ -20,8 +20,8 @@ Then **File → Open Workspace Folder…** (or `Ctrl+O`) and pick any folder wit
 - ✅ Live MD / CSV / PNG rendering in the doc pane
 - ✅ Tabbed voice panes (`brand-voice` / `ux-critic` / `data-scientist`) with Ctrl+1/2/3 shortcuts
 - ✅ Council broadcast bar with safe-mode preview gate
-- ⏳ **Stubbed**: agent replies are mocked. Real Clawpilot subprocess wiring lands in V0.2 once `clawpilot --headless --jsonl-stream` ships.
-- ⏳ **Stubbed**: Base Truths section in left rail is static — workspace YAML loader lands in V0.2.
+- ✅ Clawpilot subprocess bridge via bundled `copilot.exe -p ... --output-format json`
+- ✅ Base Truths and linked repositories loaded from `workspace.yaml`
 
 ## Files
 

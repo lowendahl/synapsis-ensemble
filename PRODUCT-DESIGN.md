@@ -277,21 +277,19 @@ graph TD
 
 ### 6.2 Clawpilot CLI surface (required additions)
 
-Ensemble depends on `clawpilot.exe` exposing a headless mode:
+Ensemble depends on Clawpilot's bundled Copilot CLI exposing non-interactive JSONL output:
 
 ```
-clawpilot.exe --headless \
-  --voice <slug> \
-  --project <slug> \
-  --session <id|new> \
-  --workspace-root <path> \
-  --tools-allowlist <comma-list> \
-  --jsonl-stream
+copilot.exe -p "<prompt>" \
+  --output-format json \
+  --resume=<session-id> \
+  --allow-tool <tool> \
+  --add-dir <workspace-or-linked-repo>
 ```
 
-- `--headless` — no UI, write turn results as JSONL to stdout.
-- `--jsonl-stream` — emit `{type: "turn"|"tool_call"|"ask_user"|"done", ...}` records.
-- `--workspace-root` — Ensemble's workspace dir, mounted as the working directory for that child.
+- `--output-format json` — emits JSONL records to stdout, including `assistant.message_delta`, `assistant.message`, `tool.*`, `session.*`, and `result`.
+- `--resume` — keeps each Voice pane attached to its own prior Clawpilot session.
+- `--add-dir` — grants the workspace and linked repositories to that child process.
 
 `m_ask_user` calls become JSONL `{type: "ask_user", question, answers}` records that Ensemble surfaces as native dialogs and replies back via stdin.
 
@@ -371,7 +369,7 @@ The roster is open-ended — users add their own templates or fork existing Voic
 - Multi-pane Electron shell with **doc panes (Chorus renderer embedded) and agent panes** as the two primitive types
 - File-association: opening `.md` from OS launches Ensemble into that file's workspace
 - Spawn / restart / kill Clawpilot child per agent pane
-- Stream JSONL output → render as turns
+- Stream JSONL output (`--output-format json`) → render assistant turns while hiding tool chatter
 - `m_ask_user` → native modal
 - File tray (read-only, drag-into-prompt)
 - **MRSF comment routing** (`@<role>` mention → agent pane → child-comment reply) — the signature flow
@@ -400,7 +398,7 @@ The roster is open-ended — users add their own templates or fork existing Voic
 ## 9. Risks & open questions
 
 1. **Token economics.** N roles × full context windows = N× the cost. Need per-pane usage telemetry and a "lean mode" that uses smaller models for non-primary roles by default.
-2. **Headless Clawpilot CLI.** Requires Clawpilot to expose `--headless --jsonl-stream`. Today it doesn't. This is the gating dependency.
+2. **Clawpilot CLI bridge drift.** The bridge depends on the bundled `copilot.exe` protocol (`--output-format json`) remaining stable. If event names change, update the renderer adapter.
 3. **Voice composition.** What if a role's Voice and the workspace's project both define `tools_allowlist`? **Decision needed:** intersection (safer) or override (more flexible). Recommend **intersection** for V1.
 4. **Memory ns collisions.** A workspace `[ws:pricing-redesign]` namespace and a project `[pricing-redesign]` namespace will both surface on `m_recall "pricing-redesign"`. Recommend treating them as semantically equivalent and migrating workspace memories into the project namespace at workspace-close time.
 5. **Pipeline re-entrancy.** Can a pipeline step invoke another pipeline? V1 says no (steps are skill calls only) — revisit in V2.
@@ -423,7 +421,7 @@ That's the gap Ensemble fills. The Voices, projects, pipelines, and CIM tiers we
 
 The reframe (Ensemble = integrated workspace, not just a council UI) changes the order of work. Chorus stays a standalone product; Ensemble **branches from the Chorus codebase** and uses its renderer.
 
-1. **Spike Clawpilot `--headless --jsonl-stream` mode** (1–2 days, gating). Without this, agent panes don't work.
+1. **Harden the Clawpilot JSONL adapter.** Keep Ensemble aligned with the Compass bridge: parse `assistant.message_delta` / `assistant.message` / `result`, track session IDs, and suppress visible tool spam.
 2. **Branch Chorus → Ensemble.** Fork the Chorus repo (or a long-lived `ensemble` branch, depending on how much divergence is expected) at v1.6.0. Treat the Chorus markdown + MRSF renderer as a vendored library inside Ensemble. **Chorus continues to ship independently.**
 3. **Generalize the Chorus inverted-MCP** from `chorus_*` (single Q/A) to `ensemble_*` (per-`@<role>` routing). `chorus_*` keeps working for the standalone Chorus product — `ensemble_*` is the superset.
 4. **Establish a renderer-sync cadence.** Bug fixes and rendering improvements made in either product should flow back to the shared core. Decide governance up front (see §12).

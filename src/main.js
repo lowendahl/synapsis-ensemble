@@ -207,11 +207,17 @@ tier: ${tier}
 
 # Sources of truth — doctrine repos and context-engineering folders voices anchor on.
 # Paths are read relative to the workspace root unless absolute.
+# Use inject_for to inline selected files into specific Voice prompts.
 base_truths: []
   # - label: Doctrine
   #   path: doctrine/
   # - label: Context engineering
   #   path: C:/repos/CSU-Context-Engineering
+  #   external: true
+  #   role: product-design
+  #   inject_for: [pm, ux, dev]
+  #   include: ["README.md", "**/*.md"]
+  #   exclude: ["**/_archive/**"]
 
 voices:
 ${voicesYaml}
@@ -575,13 +581,49 @@ async function loadWorkspaceManifest(folder) {
   } catch { return null; }
 }
 
+function arr(value) {
+  if (Array.isArray(value)) return value.filter((v) => typeof v === "string" && v.trim());
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+}
+
+function isAbsPath(p) {
+  return path.isAbsolute(p) || /^[A-Za-z]:[\\/]/.test(p);
+}
+
+function normaliseRel(p) {
+  return p.replace(/\\/g, "/").replace(/^\/+/, "");
+}
+
+function globToRegExp(pattern) {
+  const escaped = normaliseRel(pattern)
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "\u0000")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\u0000/g, ".*");
+  return new RegExp(`^${escaped}$`, "i");
+}
+
+function matchesGlob(relPath, patterns) {
+  if (!patterns.length) return true;
+  const rel = normaliseRel(relPath);
+  return patterns.some((p) => globToRegExp(p).test(rel));
+}
+
+function normaliseBaseTruthSpec(bt) {
+  if (typeof bt === "string") return { path: bt };
+  if (bt && typeof bt === "object" && typeof bt.path === "string") return bt;
+  return null;
+}
+
 async function resolveBaseTruths(folder, manifest) {
   if (!manifest || !Array.isArray(manifest.base_truths)) return [];
   const resolved = [];
-  for (const bt of manifest.base_truths) {
-    if (!bt || typeof bt !== "object" || !bt.path) continue;
-    const isAbs = path.isAbsolute(bt.path) || /^[A-Za-z]:[\\/]/.test(bt.path);
-    const full = isAbs ? bt.path : path.join(folder, bt.path);
+  for (const raw of manifest.base_truths) {
+    const bt = normaliseBaseTruthSpec(raw);
+    if (!bt) continue;
+    const isAbs = isAbsPath(bt.path);
+    const full = path.resolve(isAbs ? bt.path : path.join(folder, bt.path));
     let exists = false;
     let kind = "missing";
     try {
@@ -595,10 +637,133 @@ async function resolveBaseTruths(folder, manifest) {
       relPath: bt.path,
       kind,
       exists,
-      external: isAbs,
+      external: isAbs || bt.external === true,
+      role: bt.role || null,
+      injectFor: arr(bt.inject_for),
+      include: arr(bt.include),
+      exclude: arr(bt.exclude),
+      maxBytes: Number.isFinite(Number(bt.max_bytes)) ? Number(bt.max_bytes) : 60000,
+      maxFiles: Number.isFinite(Number(bt.max_files)) ? Number(bt.max_files) : 40,
     });
   }
   return resolved;
+}
+
+function truthAppliesToVoice(bt, voice) {
+  const targets = bt.injectFor || [];
+  if (!targets.length) return false;
+  const voiceKeys = new Set([voice.id, voice.label, "all", "*"].filter(Boolean));
+  return targets.some((t) => voiceKeys.has(t));
+}
+
+function isReadableTruthFile(filePath) {
+  return [".md", ".markdown", ".txt", ".yaml", ".yml"].includes(path.extname(filePath).toLowerCase());
+}
+
+async function collectTruthFiles(bt) {
+  if (!bt.exists) return [];
+  const defaults = ["*.md", "**/*.md", "*.markdown", "**/*.markdown", "*.txt", "**/*.txt", "*.yaml", "**/*.yaml", "*.yml", "**/*.yml"];
+  const excludes = [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/out/**",
+    "**/*.review.yaml",
+    ...bt.exclude,
+  ];
+  const includes = bt.include.length ? bt.include : defaults;
+  const files = [];
+
+  async function walk(dir) {
+    if (files.length >= bt.maxFiles) return;
+    let entries = [];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (files.length >= bt.maxFiles) break;
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(bt.path, full);
+      if (matchesGlob(rel, excludes)) continue;
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.isFile() && isReadableTruthFile(full) && matchesGlob(rel, includes)) {
+        files.push(full);
+      }
+    }
+  }
+
+  if (bt.kind === "dir") {
+    await walk(bt.path);
+    return files;
+  }
+
+  if (isReadableTruthFile(bt.path)) return [bt.path];
+  return [];
+}
+
+async function buildInjectedTruthPack(baseTruths, voice) {
+  const sections = [];
+  let injectedCount = 0;
+  for (const bt of baseTruths.filter((b) => b.exists && truthAppliesToVoice(b, voice))) {
+    const files = await collectTruthFiles(bt);
+    let used = 0;
+    let included = 0;
+    const fileSections = [];
+    for (const file of files) {
+      let text = "";
+      try {
+        text = await fs.readFile(file, "utf8");
+      } catch {
+        continue;
+      }
+      const trimmed = text.trim();
+      if (!trimmed) continue;
+      const rel = bt.kind === "dir" ? path.relative(bt.path, file) : bt.relPath;
+      const header = `--- ${bt.label}: ${rel} ---\n`;
+      const remaining = bt.maxBytes - used - header.length;
+      if (remaining <= 0) break;
+      const body = trimmed.length > remaining
+        ? `${trimmed.slice(0, Math.max(0, remaining - 80)).trim()}\n\n[truncated: ${trimmed.length - remaining} chars omitted]`
+        : trimmed;
+      used += header.length + body.length;
+      included++;
+      fileSections.push(header + body);
+    }
+    if (fileSections.length) {
+      injectedCount += included;
+      const suffix = files.length > included ? `\n[truth pack truncated: ${files.length - included} additional files available at ${bt.path}]` : "";
+      sections.push(`## ${bt.label}${bt.role ? ` (${bt.role})` : ""}\nSource: ${bt.path}${bt.external ? " (external)" : ""}\n\n${fileSections.join("\n\n")}${suffix}`);
+    }
+  }
+  if (!sections.length) return "";
+  return [
+    "--- Injected Sources of Truth ---",
+    `These are authoritative context packs selected for the ${voice.label} voice. Treat them as higher priority than general chat history. (${injectedCount} files injected.)`,
+    sections.join("\n\n"),
+  ].join("\n\n");
+}
+
+function uniquePaths(paths) {
+  const seen = new Set();
+  const out = [];
+  for (const p of paths.filter(Boolean)) {
+    const resolved = path.resolve(p);
+    const key = resolved.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(resolved);
+    }
+  }
+  return out;
+}
+
+function isInsideOrSame(candidate, root) {
+  const rel = path.relative(path.resolve(root), path.resolve(candidate));
+  return rel === "" || (!!rel && !rel.startsWith("..") && !path.isAbsolute(rel));
 }
 
 async function loadWorkspace(folder) {
@@ -647,11 +812,11 @@ async function loadWorkspace(folder) {
 
 function withinAllowedRoots(filePath) {
   if (!currentWorkspace) return false;
-  if (filePath.startsWith(currentWorkspace.path)) return true;
+  if (isInsideOrSame(filePath, currentWorkspace.path)) return true;
   // Allow files inside any base_truths root (lets voices and the renderer
   // open doctrine docs that live outside the workspace folder).
   for (const bt of currentWorkspace.baseTruths || []) {
-    if (bt.exists && filePath.startsWith(bt.path)) return true;
+    if (bt.exists && isInsideOrSame(filePath, bt.path)) return true;
   }
   return false;
 }
@@ -720,8 +885,14 @@ ipcMain.handle("clawpilot:start", async (e, args) => {
     const bt = (currentWorkspace.baseTruths || []).filter((b) => b.exists);
     if (bt.length) {
       lines.push("");
-      lines.push("Sources of truth (read with the filesystem MCP when relevant):");
-      for (const b of bt) lines.push(`  • ${b.label} → ${b.path}${b.external ? " (external)" : ""}`);
+      lines.push("Anchored sources of truth (authoritative; read with filesystem MCP when relevant):");
+      for (const b of bt) {
+        const inject = b.injectFor.length ? `; injected for ${b.injectFor.join(", ")}` : "";
+        const role = b.role ? `; role=${b.role}` : "";
+        lines.push(`  • ${b.label} → ${b.path}${b.external ? " (external)" : ""}${role}${inject}`);
+      }
+      const injectedTruths = await buildInjectedTruthPack(bt, voice);
+      if (injectedTruths) lines.push("\n" + injectedTruths);
     }
 
     // Linked code repos — paths granted via --add-dir so the voice can read/edit them.
@@ -763,6 +934,9 @@ ipcMain.handle("clawpilot:start", async (e, args) => {
         .map((r) => (typeof r === "string" ? r : r?.path))
         .filter((p) => p && typeof p === "string")
     : [];
+  const truthPaths = (currentWorkspace?.baseTruths || [])
+    .filter((b) => b.exists)
+    .map((b) => b.path);
 
   return clawpilot.startRun(e.sender, {
     voice: voice.id,
@@ -772,7 +946,7 @@ ipcMain.handle("clawpilot:start", async (e, args) => {
     resumeSessionId: resumeSessionId || undefined,
     model: model || undefined,
     cwd: currentWorkspace ? currentWorkspace.path : undefined,
-    extraDirs: linkedPaths,
+    extraDirs: uniquePaths([...linkedPaths, ...truthPaths]),
   });
 });
 

@@ -14,10 +14,57 @@ voices:
   - pm
   - uxd
 base_truths:
-  - base-truths/symbiont-brand.md
-  - clawpilot/context.md
-  - clawpilot/conventions.md
-  - clawpilot/PRECEDENCE.md
+  - label: Ensemble local brand anchor
+    path: base-truths/symbiont-brand.md
+    role: brand
+    inject_for: ["*"]
+    max_bytes: 12000
+  - label: Ensemble product design
+    path: product-design
+    role: product-design
+    inject_for: [brand, ux, uxd, pm, dev]
+    include: ["*.md", "**/*.md"]
+    exclude: ["_archive/**", "**/_archive/**"]
+    max_files: 30
+    max_bytes: 60000
+  - label: Symbiont brand canon
+    path: "C:\\repos\\CSU-Compass\\product-design\\symbiont-brand"
+    role: brand
+    external: true
+    inject_for: [brand, uxd, pm]
+    include: ["*.md", "**/*.md"]
+    exclude: ["**/*.review.yaml"]
+    max_files: 20
+    max_bytes: 90000
+  - label: CSU product design canon
+    path: "C:\\repos\\CSU-Compass\\product-design"
+    role: product-design
+    external: true
+    inject_for: [brand, ux, uxd, pm, dev, ds]
+    include:
+      - "README.md"
+      - "architecture/*.md"
+      - "compass/*.md"
+      - "csu-mcp/*.md"
+      - "md-viewer/*.md"
+      - "planner/*.md"
+      - "planner/_archive/analysis-*.md"
+      - "symbiont-brand/*.md"
+      - "symbiont-brand/**/*.md"
+    exclude:
+      - "**/*.review.yaml"
+      - "**/_archive/handoff-*.md"
+    max_files: 60
+    max_bytes: 140000
+  - label: Ensemble context
+    path: clawpilot/context.md
+    role: doctrine
+  - label: Ensemble conventions
+    path: clawpilot/conventions.md
+    role: doctrine
+  - label: Ensemble precedence
+    path: clawpilot/PRECEDENCE.md
+    role: doctrine
 references:
-  - C:\Users\plwendahl\repos\CSU-Compass
+  - C:\repos\CSU-Compass
   - C:\repos\md-viewer
