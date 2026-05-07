@@ -1108,12 +1108,6 @@
       </div>
     </div>
 
-    <h4 style="text-transform:uppercase;letter-spacing:1.5px;font-size:10px;color:var(--cp-text-muted);margin:14px 4px 8px;">Pipelines</h4>
-    <div class="instrument-card" style="cursor:pointer" onclick="setLayout('pipeline')">
-      <div class="instrument-name">/run pricing-review</div>
-      <div style="color:var(--cp-text-muted);font-size:11px;">3 steps · 1 gate · last run 2 days ago</div>
-    </div>
-
   </aside>
 
 </div>
@@ -1359,7 +1353,7 @@
     // Clear mock voice-body messages
     document.querySelectorAll(".voice-body").forEach((b) => {
       const v = b.dataset.voice;
-      const labels = { brand: "brand-voice", ux: "ux-critic", ds: "data-scientist" };
+      const labels = { brand: "brand-voice", ux: "ux-critic", ds: "data-scientist", dev: "developer", pm: "product-manager", uxd: "ux-designer" };
       b.innerHTML = `<div class="turn agent"><div class="who">${labels[v] || v}</div><div style="color:var(--cp-text-muted);">Workspace loaded. Ask me anything about the files in this folder.</div></div>`;
     });
   }
