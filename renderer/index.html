@@ -198,11 +198,8 @@
   }
   .base-truth-card.missing { opacity: 0.55; border-style: dashed; }
   .base-truth-card .label { font-weight: 600; display: flex; align-items: center; gap: 6px; }
-  .base-truth-card .path { color: var(--cp-text-muted); font-family: Consolas, monospace; font-size: 10.5px; word-break: break-all; margin-top: 2px; }
   .base-truth-card .pill { font-size: 9px; padding: 1px 6px; border-radius: 8px; background: var(--cp-surface-soft); color: var(--cp-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
   .base-truth-card.missing .pill { background: var(--cp-accent-soft); color: var(--cp-accent); }
-  .base-truth-children { margin-top: 6px; padding-left: 4px; border-left: 1px dashed var(--cp-border); display: none; }
-  .base-truth-children.open { display: block; }
 
   /* Hide the stage when welcome is showing (no workspace loaded) */
   body[data-mode="welcome"] .stage { display: none; }
@@ -485,6 +482,14 @@
   }
   .voice-tab.active .tab-ping { display: none; }
   .voice-tab .answered { color: var(--cp-success); font-size: 11px; }
+  .voice-tab .tab-close {
+    opacity: 0; margin-left: 4px; font-size: 14px; line-height: 1;
+    color: var(--cp-text-muted); cursor: pointer; transition: opacity 0.15s;
+    padding: 0 2px; border-radius: 4px;
+  }
+  .voice-tab:hover .tab-close { opacity: 0.7; }
+  .voice-tab .tab-close:hover { opacity: 1; color: var(--cp-text); background: var(--cp-surface-soft); }
+  .voice-tab.closed { display: none; }
   .voice-pane-stack { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .voice-body-wrap { flex: 1; overflow: hidden; position: relative; }
   .voice-body {
@@ -636,7 +641,17 @@
     padding: 10px 12px;
     margin-bottom: 8px;
     font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .instrument-card:hover { border-color: var(--cp-border-strong); box-shadow: 0 0 0 1px var(--cp-border-strong); }
+  .instrument-card.voice-closed { opacity: 0.55; }
+  .instrument-card.voice-closed:hover { opacity: 1; }
+  .instrument-card .reopen-hint {
+    display: none; font-size: 10px; color: var(--cp-accent);
+    margin-top: 4px; font-style: italic;
+  }
+  .instrument-card.voice-closed .reopen-hint { display: block; }
   .instrument-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
   .instrument-list {
     display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
@@ -972,26 +987,32 @@
         <button class="voice-tab active" data-voice="brand">
           <span class="voice-dot brand"></span>brand-voice
           <span id="brand-pings"></span>
+          <span class="tab-close" title="Close tab">×</span>
         </button>
         <button class="voice-tab" data-voice="ux">
           <span class="voice-dot ux"></span>ux-critic
           <span id="ux-pings"></span>
+          <span class="tab-close" title="Close tab">×</span>
         </button>
         <button class="voice-tab" data-voice="ds">
           <span class="voice-dot ds"></span>data-scientist
           <span id="ds-pings"></span>
+          <span class="tab-close" title="Close tab">×</span>
         </button>
         <button class="voice-tab" data-voice="dev">
           <span class="voice-dot dev"></span>developer
           <span id="dev-pings"></span>
+          <span class="tab-close" title="Close tab">×</span>
         </button>
         <button class="voice-tab" data-voice="pm">
           <span class="voice-dot pm"></span>product-mgr
           <span id="pm-pings"></span>
+          <span class="tab-close" title="Close tab">×</span>
         </button>
         <button class="voice-tab" data-voice="uxd">
           <span class="voice-dot uxd"></span>ux-designer
           <span id="uxd-pings"></span>
+          <span class="tab-close" title="Close tab">×</span>
         </button>
       </div>
       </div>
@@ -1066,7 +1087,7 @@
     <h4 style="text-transform:uppercase;letter-spacing:1.5px;font-size:10px;color:var(--cp-text-muted);margin:0 4px 8px;">Instruments</h4>
     <div style="font-size:11px;color:var(--cp-text-muted);padding:0 4px 8px;">Skills + tools available to each voice. The orchestra metaphor — voices play instruments.</div>
 
-    <div class="instrument-card">
+    <div class="instrument-card" data-voice="brand">
       <div class="instrument-name"><span class="voice-dot brand" style="display:inline-block;vertical-align:middle"></span> Brand Voice</div>
       <div class="instrument-list">
         <span class="chip allowed">filesystem</span>
@@ -1075,9 +1096,10 @@
         <span class="chip denied">shell</span>
         <span class="chip denied">m365_*</span>
       </div>
+      <div class="reopen-hint">Click to reopen tab</div>
     </div>
 
-    <div class="instrument-card">
+    <div class="instrument-card" data-voice="ux">
       <div class="instrument-name"><span class="voice-dot ux" style="display:inline-block;vertical-align:middle"></span> UX Critic</div>
       <div class="instrument-list">
         <span class="chip allowed">filesystem</span>
@@ -1085,9 +1107,10 @@
         <span class="chip allowed">/excalidraw</span>
         <span class="chip denied">shell</span>
       </div>
+      <div class="reopen-hint">Click to reopen tab</div>
     </div>
 
-    <div class="instrument-card">
+    <div class="instrument-card" data-voice="ds">
       <div class="instrument-name"><span class="voice-dot ds" style="display:inline-block;vertical-align:middle"></span> Data Scientist</div>
       <div class="instrument-list">
         <span class="chip allowed">filesystem</span>
@@ -1096,9 +1119,10 @@
         <span class="chip allowed">/xlsx</span>
         <span class="chip allowed">/distill</span>
       </div>
+      <div class="reopen-hint">Click to reopen tab</div>
     </div>
 
-    <div class="instrument-card">
+    <div class="instrument-card" data-voice="dev">
       <div class="instrument-name"><span class="voice-dot dev" style="display:inline-block;vertical-align:middle"></span> Developer</div>
       <div class="instrument-list">
         <span class="chip allowed">filesystem</span>
@@ -1107,9 +1131,10 @@
         <span class="chip allowed">git</span>
         <span class="chip allowed">/docx</span>
       </div>
+      <div class="reopen-hint">Click to reopen tab</div>
     </div>
 
-    <div class="instrument-card">
+    <div class="instrument-card" data-voice="pm">
       <div class="instrument-name"><span class="voice-dot pm" style="display:inline-block;vertical-align:middle"></span> Product Manager</div>
       <div class="instrument-list">
         <span class="chip allowed">filesystem</span>
@@ -1117,15 +1142,17 @@
         <span class="chip allowed">/xlsx</span>
         <span class="chip allowed">m365_*</span>
       </div>
+      <div class="reopen-hint">Click to reopen tab</div>
     </div>
 
-    <div class="instrument-card">
+    <div class="instrument-card" data-voice="uxd">
       <div class="instrument-name"><span class="voice-dot uxd" style="display:inline-block;vertical-align:middle"></span> UX Designer</div>
       <div class="instrument-list">
         <span class="chip allowed">filesystem</span>
         <span class="chip allowed">/excalidraw</span>
         <span class="chip allowed">web-fetch</span>
       </div>
+      <div class="reopen-hint">Click to reopen tab</div>
     </div>
 
   </aside>
@@ -1326,6 +1353,7 @@
     if (node.kind === "dir") {
       const row = document.createElement("div");
       row.className = "tree-node dir";
+      row.dataset.path = node.path;
       row.innerHTML = `<span class="twist">▶</span><span class="glyph">📁</span><span class="tree-name">${escapeHtml(node.name)}</span>`;
       const childWrap = document.createElement("div");
       childWrap.className = "tree-node-children collapsed";
@@ -1334,11 +1362,7 @@
         const open = childWrap.classList.toggle("collapsed");
         row.querySelector(".twist").classList.toggle("open", !open);
       };
-      // Auto-open first level
-      if (depth === 0) {
-        childWrap.classList.remove("collapsed");
-        row.querySelector(".twist").classList.add("open");
-      }
+      // Folders start collapsed; user clicks to expand
       wrap.appendChild(row);
       wrap.appendChild(childWrap);
     } else {
@@ -1442,36 +1466,39 @@
       const pill = bt.exists ? (bt.external ? "EXTERNAL" : "LOCAL") : "MISSING";
       card.innerHTML = `
         <div class="label">📚 ${escapeHtml(bt.label)} <span class="pill">${pill}</span></div>
-        <div class="path">${escapeHtml(bt.path)}</div>
-        <div class="base-truth-children" data-root="${escapeHtml(bt.path)}"></div>
       `;
-      if (bt.exists && bt.kind === "dir") {
+      if (bt.exists) {
         card.style.cursor = "pointer";
-        card.onclick = async (ev) => {
-          if (ev.target.tagName === "A") return;
-          const child = card.querySelector(".base-truth-children");
-          if (child.classList.contains("open")) {
-            child.classList.remove("open"); return;
-          }
-          if (!child.dataset.loaded) {
-            child.innerHTML = `<div style="color:var(--cp-text-muted);font-size:11px;padding:4px;">loading…</div>`;
-            try {
-              const tree = await window.ensemble.baseTruthTree(bt.path);
-              child.innerHTML = "";
-              (tree?.children || []).forEach((n) => child.appendChild(renderTreeNode(n, 0)));
-              if (!tree?.children?.length) child.innerHTML = `<div style="color:var(--cp-text-muted);font-size:11px;padding:4px;">(empty)</div>`;
-              child.dataset.loaded = "1";
-            } catch (e) {
-              child.innerHTML = `<div style="color:var(--cp-danger);font-size:11px;padding:4px;">${escapeHtml(e.message)}</div>`;
-            }
-          }
-          child.classList.add("open");
-        };
-      } else if (bt.exists && bt.kind !== "dir") {
-        card.style.cursor = "pointer";
-        card.onclick = () => openFile({ name: path_basename(bt.path), path: bt.path, kind: bt.kind });
+        card.onclick = () => revealInTree(bt.path);
       }
       wrap.appendChild(card);
+    }
+  }
+
+  function revealInTree(targetPath) {
+    const norm = targetPath.replace(/\//g, "\\").replace(/\\+$/, "");
+    const tree = document.getElementById("fileTree");
+    // Find matching tree-node by data-path
+    const allNodes = tree.querySelectorAll(".tree-node");
+    for (const node of allNodes) {
+      const nodePath = (node.dataset.path || "").replace(/\//g, "\\").replace(/\\+$/, "");
+      if (nodePath === norm) {
+        // Expand all ancestor collapsed containers
+        let el = node.parentElement;
+        while (el && el !== tree) {
+          if (el.classList.contains("tree-node-children") && el.classList.contains("collapsed")) {
+            el.classList.remove("collapsed");
+            const prevRow = el.previousElementSibling;
+            if (prevRow) prevRow.querySelector(".twist")?.classList.add("open");
+          }
+          el = el.parentElement;
+        }
+        // Highlight and scroll
+        document.querySelectorAll(".tree-node.active").forEach((n) => n.classList.remove("active"));
+        node.classList.add("active");
+        node.scrollIntoView({ block: "center", behavior: "smooth" });
+        return;
+      }
     }
   }
 
@@ -1579,7 +1606,10 @@
     }
   }
   document.querySelectorAll(".voice-tab").forEach(tab => {
-    tab.addEventListener("click", () => activateVoiceTab(tab.dataset.voice));
+    tab.addEventListener("click", (e) => {
+      if (e.target.closest(".tab-close")) return; // handled by close button
+      if (!tab.classList.contains("closed")) activateVoiceTab(tab.dataset.voice);
+    });
   });
   // Keyboard shortcuts ⌘/Ctrl + 1/2/3
   window.addEventListener("keydown", (e) => {
@@ -1600,6 +1630,55 @@
     if (!tag) return;
     tag.innerHTML = `<span class="answered">✓</span>`;
   }
+
+  // ───── Close / reopen voice tabs ─────
+  function closeVoiceTab(voice) {
+    const tab = document.querySelector(`.voice-tab[data-voice="${voice}"]`);
+    if (!tab) return;
+    tab.classList.add("closed");
+    // If closing the active tab, switch to the first visible tab
+    if (tab.classList.contains("active")) {
+      tab.classList.remove("active");
+      document.querySelectorAll(".voice-body").forEach(b => { if (b.dataset.voice === voice) b.classList.remove("active"); });
+      document.querySelectorAll(".voice-input-wrap").forEach(b => { if (b.dataset.voice === voice) b.classList.remove("active"); });
+      const next = document.querySelector(".voice-tab:not(.closed)");
+      if (next) activateVoiceTab(next.dataset.voice);
+    }
+    // Mark corresponding instrument card
+    const card = document.querySelector(`.instrument-card[data-voice="${voice}"]`);
+    if (card) card.classList.add("voice-closed");
+  }
+
+  function reopenVoiceTab(voice) {
+    const tab = document.querySelector(`.voice-tab[data-voice="${voice}"]`);
+    if (!tab) return;
+    tab.classList.remove("closed");
+    const card = document.querySelector(`.instrument-card[data-voice="${voice}"]`);
+    if (card) card.classList.remove("voice-closed");
+    activateVoiceTab(voice);
+  }
+
+  // Wire close buttons on tabs
+  document.querySelectorAll(".voice-tab .tab-close").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Don't activate the tab
+      const voice = btn.closest(".voice-tab").dataset.voice;
+      closeVoiceTab(voice);
+    });
+  });
+
+  // Wire instrument cards — click to reopen (or activate if already open)
+  document.querySelectorAll(".instrument-card[data-voice]").forEach(card => {
+    card.addEventListener("click", () => {
+      const voice = card.dataset.voice;
+      const tab = document.querySelector(`.voice-tab[data-voice="${voice}"]`);
+      if (tab && tab.classList.contains("closed")) {
+        reopenVoiceTab(voice);
+      } else {
+        activateVoiceTab(voice);
+      }
+    });
+  });
 
   // ───── Theme toggle ─────
   document.getElementById("themeBtn").onclick = () => {
@@ -2058,42 +2137,49 @@
 
       if (ev.kind === "event") {
         const p = ev.payload || {};
+        const data = p.data || {};
         const t = p.type;
-        // session.created → remember sessionId for resume
-        if (t === "session.created" && p.session_id) {
-          clawState.sessions[run.voice] = p.session_id;
+        const sessionId = p.session_id || p.sessionId || data.session_id || data.sessionId;
+        // session.created / result → remember sessionId for resume
+        if ((t === "session.created" || t === "result") && sessionId) {
+          clawState.sessions[run.voice] = sessionId;
         }
-        // assistant streaming
-        if (t === "assistant.message_delta" && p.delta?.text) {
-          run.accumulated += p.delta.text;
+
+        const renderAccumulated = () => {
           body.innerHTML = inlineMd(run.accumulated);
           const paneBody = document.getElementById(run.voice + "-body");
           if (paneBody) paneBody.scrollTop = paneBody.scrollHeight;
-        }
-        // assistant final message (some CLI versions skip deltas)
-        if (t === "assistant.message" && p.message?.content) {
-          const txt = Array.isArray(p.message.content)
-            ? p.message.content.map((c) => c.text || "").join("")
-            : (p.message.content.text || String(p.message.content));
-          if (txt && txt.length > run.accumulated.length) {
-            run.accumulated = txt;
-            body.innerHTML = inlineMd(run.accumulated);
+        };
+
+        // assistant streaming: Copilot CLI emits JSONL under `--output-format json`.
+        if (t === "assistant.message_delta") {
+          const delta = data.deltaContent || data.delta?.text || p.deltaContent || p.delta?.text || p.delta?.content || "";
+          if (delta) {
+            run.accumulated += String(delta);
+            renderAccumulated();
           }
         }
+
+        // assistant final message (some CLI versions skip deltas)
+        if (t === "assistant.message") {
+          const content = data.content ?? p.message?.content ?? p.content;
+          const txt = Array.isArray(content)
+            ? content.map((c) => c.text || c.content || "").join("")
+            : (content?.text || String(content || ""));
+          if (txt && txt.length > run.accumulated.length) {
+            run.accumulated = txt;
+            renderAccumulated();
+          }
+        }
+
         // batch-mode `--output-format json` emits one final {type:"result", result:"..."}
         if (t === "result" && typeof p.result === "string" && p.result.length > run.accumulated.length) {
           run.accumulated = p.result;
-          body.innerHTML = inlineMd(run.accumulated);
+          renderAccumulated();
         }
-        // result event sometimes carries session_id too
-        if (t === "result" && p.session_id) {
-          clawState.sessions[run.voice] = p.session_id;
-        }
-        // tool calls — show a small inline note
-        if (t === "tool.use_request" && p.name) {
-          body.insertAdjacentHTML("beforeend",
-            `<div style="font-size:11px;color:var(--cp-text-muted);margin-top:6px;">🛠 ${escapeHtml(p.name)}</div>`);
-        }
+        // Tool and session chatter are intentionally not rendered. Compass
+        // receives the same JSONL stream but keeps tool activity out of the
+        // conversation pane to avoid "tool spam".
       }
 
       if (ev.kind === "closed") {
