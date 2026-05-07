@@ -390,15 +390,47 @@
   .panes.atelier { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
   /* Voice tab strip */
+  .voice-tabs-wrap {
+    position: relative;
+    background: var(--cp-bg-elevated);
+    border-bottom: 1px solid var(--cp-border);
+  }
   .voice-tabs {
     display: flex;
     gap: 2px;
-    padding: 6px 8px 0;
-    background: var(--cp-bg-elevated);
-    border-bottom: 1px solid var(--cp-border);
+    padding: 6px 32px 0; /* leave room for overlay chevrons */
     overflow-x: auto;
-    scrollbar-width: thin;
+    overflow-y: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
   }
+  .voice-tabs::-webkit-scrollbar { display: none; }
+  .tab-scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--cp-border);
+    background: var(--cp-surface);
+    color: var(--cp-text-muted);
+    font: 600 14px/1 inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+    z-index: 2;
+    padding: 0;
+  }
+  .tab-scroll-btn:hover { color: var(--cp-text); border-color: var(--cp-border-strong); }
+  .tab-scroll-btn.show { opacity: 1; pointer-events: auto; }
+  .tab-scroll-btn.left { left: 6px; }
+  .tab-scroll-btn.right { right: 6px; }
   .voice-tab {
     background: transparent; border: 1px solid transparent;
     border-bottom: none;
@@ -913,6 +945,9 @@
 
     <!-- TABBED VOICE PANE -->
     <div class="pane">
+      <div class="voice-tabs-wrap">
+        <button class="tab-scroll-btn left" id="tabScrollLeft" aria-label="Scroll tabs left" type="button">‹</button>
+        <button class="tab-scroll-btn right" id="tabScrollRight" aria-label="Scroll tabs right" type="button">›</button>
       <div class="voice-tabs" id="voiceTabs">
         <button class="voice-tab active" data-voice="brand">
           <span class="voice-dot brand"></span>brand-voice
@@ -938,9 +973,7 @@
           <span class="voice-dot uxd"></span>ux-designer
           <span id="uxd-pings"></span>
         </button>
-        <div style="margin-left:auto;display:flex;align-items:center;padding:0 8px;color:var(--cp-text-muted);font-size:11px;">
-          <span style="font-family:Consolas,monospace;">⌘1 ⌘2 ⌘3</span>
-        </div>
+      </div>
       </div>
       <div class="voice-pane-stack">
         <div class="voice-body-wrap">
@@ -2078,6 +2111,34 @@
   } else {
     checkClawpilot();
   }
+
+  // ── Voice-tab chevron scroll affordance ──
+  // Hide the native scrollbars and show overlay ‹ › buttons only when there's
+  // more content off-screen on that side. Updates on scroll/resize/tab change.
+  (function wireTabScrollChevrons() {
+    const strip = document.getElementById("voiceTabs");
+    const left = document.getElementById("tabScrollLeft");
+    const right = document.getElementById("tabScrollRight");
+    if (!strip || !left || !right) return;
+    function update() {
+      const max = strip.scrollWidth - strip.clientWidth;
+      const x = strip.scrollLeft;
+      left.classList.toggle("show", x > 4);
+      right.classList.toggle("show", x < max - 4);
+    }
+    function step(dir) {
+      strip.scrollBy({ left: dir * Math.max(160, strip.clientWidth * 0.6), behavior: "smooth" });
+    }
+    left.addEventListener("click", () => step(-1));
+    right.addEventListener("click", () => step(1));
+    strip.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    // run after layout settles
+    requestAnimationFrame(update);
+    setTimeout(update, 200);
+    // also re-check when tabs change (active tab might be off-screen)
+    strip.addEventListener("click", () => setTimeout(update, 50));
+  })();
 </script>
 
 </body>
